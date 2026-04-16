@@ -8,11 +8,11 @@ the actual Rego policies — nothing on the enforcement path is mocked.
 """
 
 import subprocess
+import time
 from pathlib import Path
 
 import httpx
 import pytest
-import time
 
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.opa_client import OPAClient

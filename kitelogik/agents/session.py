@@ -10,13 +10,12 @@ flows through the governance pipeline: credential check → OPA evaluation
 import inspect
 import json
 import logging
+import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
-
-import time
 
 from kitelogik.agents.llm import AnthropicLLMClient, LLMClient, ToolCall
 from kitelogik.anchor.credentials import CredentialBroker
@@ -28,6 +27,7 @@ from kitelogik.memory.store import MemoryStore
 from kitelogik.observability.tracer import get_tracer
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.models import GovernanceEvent, PolicyDecision, SessionContext, ToolCallInput
+
 from .tools import TOOL_SCHEMAS, execute_tool
 
 logger = logging.getLogger(__name__)

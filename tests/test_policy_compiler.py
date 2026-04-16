@@ -10,7 +10,6 @@ import pytest
 from kitelogik.policies.compiler import compile_yaml, compile_yaml_string
 from kitelogik.policies.schema import PolicyFile, Rule
 
-
 # ---------------------------------------------------------------------------
 # Schema validation
 # ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import time
 from typing import TYPE_CHECKING
 
-import time
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 

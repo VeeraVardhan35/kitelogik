@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 import re
-
 import unicodedata
 
 from .models import SanitizedResponse

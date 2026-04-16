@@ -19,7 +19,6 @@ from kitelogik.tether.models import (
 )
 from kitelogik.tether.opa_client import OPAClient, OPAConnectionError
 
-
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
 

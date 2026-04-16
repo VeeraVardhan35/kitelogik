@@ -29,6 +29,7 @@ from kitelogik.anchor.queue import HITLQueue
 from kitelogik.audit.store import AuditStore
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.models import SessionContext
+
 from .conftest import requires_docker
 
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-key-not-used-in-e2e")

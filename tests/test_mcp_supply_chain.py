@@ -19,7 +19,6 @@ from kitelogik.mcp.client import MCPCallError, MCPClient, MCPSupplyChainError
 from kitelogik.mcp.models import MCPServer
 from kitelogik.mcp.registry import ServerRegistry
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 
