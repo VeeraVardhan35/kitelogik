@@ -96,10 +96,12 @@ out/
 .vscode/
 *.code-workspace
 
-# ── Kite Logik — internal planning docs (never public) ───────────────────────
-docs/gtm-roadmap.md
-docs/competitive-analysis.md
-docs/oss-improvement-plan.md
+# ── Kite Logik — internal (never public) ─────────────────────────────────────
+docs/
+scripts/
+dev/
+CLAUDE.md
+DEV.md
 
 # ── Kite Logik — enterprise staging ─────────────────────────────────────────
 # Enterprise-only source files waiting to be extracted to kitelogik-enterprise.
@@ -131,11 +133,8 @@ traces/
 screenshot_*.png
 review_*.png
 
-# ── Dev artifacts (local only) ────────────────────────────────────────────────
-dev/*.db
-dev/*.db-shm
-dev/*.db-wal
-dev/*.jsonl
+# ── Screenshots ──────────────────────────────────────────────────────────────
+Screenshot*.png
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 .docker/
