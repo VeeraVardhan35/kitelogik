@@ -209,7 +209,7 @@ class GovernedToolbox:
         self._gate = gate
         self._context = context
         self._sanitize = sanitize
-        self._tools: dict[str, Callable] = {}
+        self._tools: dict[str, tuple[Callable, str]] = {}
 
     def register(
         self,

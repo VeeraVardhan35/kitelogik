@@ -114,7 +114,7 @@ class OPAClient:
                 f"OPA returned HTTP {exc.response.status_code}: {exc.response.text}"
             ) from exc
 
-        return response.json().get("result", {})
+        return dict(response.json().get("result", {}))
 
     async def evaluate(self, policy_input: PolicyInput) -> PolicyDecision:
         """Evaluate a tool call against the ``kitelogik.main`` policy package.

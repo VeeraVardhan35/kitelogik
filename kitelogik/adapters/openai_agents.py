@@ -93,10 +93,10 @@ class OpenAIAgentsAdapter:
             sanitize = self._sanitize
 
             async def _governed_fn(
-                _fn=fn,
-                _name=name,
-                _action=action_name,
-                _sanitize=sanitize,
+                _fn: Any = fn,
+                _name: str = name,
+                _action: str = action_name,
+                _sanitize: bool = sanitize,
                 **kwargs: Any,
             ) -> str:
                 tc = ToolCallInput(action=_action, tool_name=_name, args=kwargs)

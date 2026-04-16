@@ -116,9 +116,9 @@ class AnthropicLLMClient:
         response = await self._client.messages.create(
             model=model,
             max_tokens=max_tokens,
-            tools=tools,
+            tools=tools,  # type: ignore[arg-type]
             system=system,
-            messages=messages,
+            messages=messages,  # type: ignore[arg-type]
         )
 
         text_content = None
@@ -137,7 +137,7 @@ class AnthropicLLMClient:
                 )
 
         return LLMResponse(
-            stop_reason=response.stop_reason,
+            stop_reason=response.stop_reason,  # type: ignore[arg-type]
             text_content=text_content,
             tool_calls=tool_calls,
             raw_content=response.content,

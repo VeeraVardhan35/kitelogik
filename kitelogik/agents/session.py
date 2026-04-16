@@ -221,7 +221,7 @@ class AgentSession:
             response = await self._llm.create_message(
                 model=self.model,
                 max_tokens=4096,
-                tools=self._tools,
+                tools=self._tools,  # type: ignore[arg-type]
                 system=system,
                 messages=messages,
             )
@@ -497,6 +497,7 @@ class AgentSession:
     async def _handle_memory_tool(self, tool_name: str, args: dict) -> str:
         if tool_name == "query_memory":
             key = args.get("key", "")
+            assert self.memory_store is not None
             entry = await self.memory_store.read(key)
             if entry is None:
                 return json.dumps({"error": f"Key '{key}' not found in memory"})
@@ -517,6 +518,7 @@ class AgentSession:
             trust_tier = (
                 TrustTier.DELEGATED if self.context.delegation_depth > 0 else TrustTier.EXTERNAL
             )
+            assert self.memory_store is not None
             entry = await self.memory_store.write(
                 key=key,
                 value=value,

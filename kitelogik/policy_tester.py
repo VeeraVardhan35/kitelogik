@@ -156,10 +156,10 @@ def _load_input(raw: str) -> dict:
     # Try as a file path first
     if os.path.isfile(raw):
         with open(raw) as f:
-            return json.load(f)
+            return dict(json.load(f))
     # Otherwise parse as an inline JSON string
     try:
-        return json.loads(raw)
+        return dict(json.loads(raw))
     except json.JSONDecodeError as e:
         print(f"{R}Error:{RS} --input is neither a valid JSON string nor an existing file.")
         print(f"  {e}")

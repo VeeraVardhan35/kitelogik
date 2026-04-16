@@ -82,13 +82,13 @@ class MCPClient:
         canonical = json.dumps(sorted(tool_names), separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()
 
-    async def _fetch_manifest_hash(self, server: MCPServer) -> tuple[str, str | None]:
+    async def _fetch_manifest_hash(self, server: MCPServer) -> tuple[str | None, str | None]:
         """
         Fetch the tool manifest from ``server`` via tools/list.
 
         Returns
         -------
-        tuple[str, str | None]
+        tuple[str | None, str | None]
                 ``(actual_hash, error_string)``. Returns ``(None, error)`` on failure.
         """
         payload = {

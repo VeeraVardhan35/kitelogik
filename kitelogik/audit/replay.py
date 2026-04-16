@@ -15,7 +15,7 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kitelogik.tether.models import SessionContext, ToolCallInput
 
@@ -39,7 +39,7 @@ class ReplayResult:
     outcome_changed: bool
 
 
-def _decision_to_outcome(decision) -> str:
+def _decision_to_outcome(decision: Any) -> str:
     """Map a PolicyDecision to the canonical outcome vocabulary."""
     if decision.deny:
         return "denied"

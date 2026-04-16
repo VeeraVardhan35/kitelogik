@@ -92,7 +92,7 @@ class OpenAIAdapter:
         self._context = context
         self._sanitize = sanitize
         self._deny_message = deny_message or "Action blocked by governance policy."
-        self._tools: dict[str, tuple[Callable, dict]] = {}
+        self._tools: dict[str, tuple[Callable, str, dict | None]] = {}
 
     def register(
         self,

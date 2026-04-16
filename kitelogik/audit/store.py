@@ -24,6 +24,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 _POLICIES_DIR = Path(__file__).parent.parent / "policies"
 
@@ -204,8 +205,8 @@ class AuditStore:
         session_id: str,
         tool_name: str,
         args: dict,
-        decision: object,  # PolicyDecision — avoid circular import; duck-typed
-        context,  # SessionContext — duck-typed
+        decision: Any,  # PolicyDecision — avoid circular import; duck-typed
+        context: Any,  # SessionContext — duck-typed
         outcome: str,
         hitl_action_id: str | None = None,
         hitl_decided_by: str | None = None,
