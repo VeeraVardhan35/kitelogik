@@ -204,7 +204,7 @@ class AuditStore:
         session_id: str,
         tool_name: str,
         args: dict,
-        decision,  # PolicyDecision — avoid circular import; duck-typed
+        decision: object,  # PolicyDecision — avoid circular import; duck-typed
         context,  # SessionContext — duck-typed
         outcome: str,
         hitl_action_id: str | None = None,

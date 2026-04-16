@@ -27,10 +27,10 @@ import argparse
 import asyncio
 import json
 import os
-import sys
 import uuid
 
 import httpx
+import sys
 
 # ── ANSI ──────────────────────────────────────────────────────────────────────
 G = "\033[92m"
@@ -55,7 +55,7 @@ def _package_to_url_path(package: str) -> str:
     return package.replace(".", "/")
 
 
-async def run(policy_path: str, input_data: dict, opa_url: str) -> None:
+async def run(policy_path: str, input_data: dict, opa_url: str) -> int:
     policy_id = f"kitelogik_test_{uuid.uuid4().hex[:8]}"
     opa_url = opa_url.rstrip("/")
 

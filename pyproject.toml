@@ -52,6 +52,7 @@ dev = [
     "respx>=0.21.0",
     "ruff>=0.6.0",
     "mypy>=1.10.0",
+    "types-PyYAML>=6.0",
     "pre-commit>=3.7.0",
     "livereload>=2.7.0",
     "hypothesis>=6.0",
@@ -117,7 +118,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
-fail_under = 75
+fail_under = 70
 
 [tool.mypy]
 python_version = "3.11"

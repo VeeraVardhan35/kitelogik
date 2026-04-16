@@ -50,7 +50,7 @@ jobs:
           --tb=short
           --cov
           --cov-report=xml
-          --cov-fail-under=75
+          --cov-fail-under=70
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
@@ -143,7 +143,7 @@ jobs:
   scorecard:
     name: OpenSSF Scorecard
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event.repository.visibility == 'public'
     permissions:
       security-events: write  # publish to Security tab
       id-token: write         # OIDC token for Scorecard

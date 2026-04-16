@@ -15,10 +15,11 @@ Commands:
 import argparse
 import json
 import subprocess
-import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
+
+import sys
 
 
 def _find_policies_dir() -> Path:
@@ -421,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
-    return args.func(args)
+    return int(args.func(args))
 
 
 if __name__ == "__main__":

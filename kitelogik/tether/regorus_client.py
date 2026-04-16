@@ -108,7 +108,7 @@ class RegorusClient:
             if results and "expressions" in results[0]:
                 expressions = results[0]["expressions"]
                 if expressions:
-                    return expressions[0].get("value", {})
+                    return dict(expressions[0].get("value", {}))
 
         return {}
 

@@ -95,6 +95,7 @@ class StdioTransport:
             self._reader_task = None
 
         if self._process:
+            assert self._process.stdin is not None
             self._process.stdin.close()
             try:
                 await asyncio.wait_for(self._process.wait(), timeout=5.0)
@@ -154,6 +155,7 @@ class StdioTransport:
         self._pending[request_id] = future
 
         line = json.dumps(message) + "\n"
+        assert self._process is not None and self._process.stdin is not None
         self._process.stdin.write(line.encode())
         await self._process.stdin.drain()
 
@@ -165,7 +167,7 @@ class StdioTransport:
                 f"Request timed out after {timeout or self._request_timeout}s: {method}"
             )
 
-        return result
+        return dict(result)
 
     async def send_notification(self, method: str, params: dict | None = None) -> None:
         """Send a JSON-RPC notification (no response expected)."""
@@ -178,12 +180,14 @@ class StdioTransport:
             "params": params or {},
         }
         line = json.dumps(message) + "\n"
+        assert self._process is not None and self._process.stdin is not None
         self._process.stdin.write(line.encode())
         await self._process.stdin.drain()
 
     async def _read_loop(self) -> None:
         """Read JSON-RPC responses from the subprocess stdout."""
         try:
+            assert self._process is not None and self._process.stdout is not None
             while self.is_running:
                 line = await self._process.stdout.readline()
                 if not line:
