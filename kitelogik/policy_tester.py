@@ -27,10 +27,10 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 import uuid
 
 import httpx
-import sys
 
 # ── ANSI ──────────────────────────────────────────────────────────────────────
 G = "\033[92m"

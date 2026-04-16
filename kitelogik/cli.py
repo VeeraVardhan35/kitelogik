@@ -15,11 +15,10 @@ Commands:
 import argparse
 import json
 import subprocess
+import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-
-import sys
 
 
 def _find_policies_dir() -> Path:
