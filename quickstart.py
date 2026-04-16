@@ -20,10 +20,10 @@ Run:
 import asyncio
 import logging
 import os
-import time
 from datetime import UTC, datetime
 
 import httpx
+import time
 from dotenv import load_dotenv
 
 logging.disable(logging.CRITICAL)  # suppress gate/OPA logger output

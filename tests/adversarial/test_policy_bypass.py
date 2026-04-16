@@ -22,11 +22,11 @@ Run with:
 """
 
 import subprocess
-import time
 from pathlib import Path
 
 import httpx
 import pytest
+import time
 
 from kitelogik.tether.models import PolicyInput, RiskTier, SessionContext
 from kitelogik.tether.opa_client import OPAClient

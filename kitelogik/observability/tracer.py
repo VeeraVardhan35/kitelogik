@@ -101,7 +101,8 @@ def get_finished_spans() -> list[dict]:
                 "end_ms": span.end_time // 1_000_000 if span.end_time else None,
                 "duration_ms": (
                     (span.end_time - span.start_time) // 1_000_000
-                    if span.start_time and span.end_time else None
+                    if span.start_time and span.end_time
+                    else None
                 ),
                 "status": span.status.status_code.name,
                 # Kite Logik semantic attributes

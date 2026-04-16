@@ -19,7 +19,6 @@ import uuid
 import httpx
 
 from kitelogik.tether.sanitizer import sanitize_tool_output
-
 from .models import MCPContent, MCPServer, MCPToolResult, MCPVerificationStatus
 from .registry import ServerRegistry
 

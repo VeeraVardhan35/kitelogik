@@ -14,6 +14,7 @@ from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.models import PolicyDecision, RiskTier, SessionContext
 from kitelogik.tether.opa_client import OPAClient
 
+
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 

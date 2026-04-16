@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from kitelogik.tether.sanitizer import sanitize_tool_output
-
 from .models import MemoryEntry, TrustTier
 
 _CREATE_TABLE = """

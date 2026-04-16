@@ -12,12 +12,13 @@ Verifies:
 
 import json
 import subprocess
-import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import sys
 
 from kitelogik.policy_tester import _load_input, _package_to_url_path, _parse_package
+
 
 # ── Unit tests ─────────────────────────────────────────────────────────────────
 
