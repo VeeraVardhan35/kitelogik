@@ -11,10 +11,8 @@ package kitelogik.library.rate_limiting
 import future.keywords.if
 
 default allow := false
-default deny := false
 
-# Default max calls per session (override via context budget fields)
-_max_calls := 200
+default deny := false
 
 # Allow when no budget is set
 allow if {

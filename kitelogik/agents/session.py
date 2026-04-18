@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from kitelogik.agents.llm import AnthropicLLMClient, LLMClient, ToolCall
+from kitelogik.agents.llm import DEFAULT_MAX_TOKENS, AnthropicLLMClient, LLMClient, ToolCall
 from kitelogik.anchor.credentials import CredentialBroker
 from kitelogik.anchor.models import ActionStatus, PendingAction
 from kitelogik.anchor.queue import HITLQueue
@@ -28,12 +28,17 @@ from kitelogik.observability.tracer import get_tracer
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.models import GovernanceEvent, PolicyDecision, SessionContext, ToolCallInput
 
-from .tools import TOOL_SCHEMAS, execute_tool
-
 logger = logging.getLogger(__name__)
 
 # Memory tools are handled locally — they don't route through MCP
 _MEMORY_TOOLS = {"query_memory", "write_memory"}
+
+# Seconds the session will wait for a human decision on an escalated
+# (HITL-required) action before timing out. Five minutes balances "slow
+# enough for a human reviewer to respond" against "fast enough that an
+# abandoned session doesn't tie up resources indefinitely". Override per
+# call via ``AgentSession(hitl_timeout=...)``.
+DEFAULT_HITL_TIMEOUT_SECONDS = 300.0
 
 
 @dataclass
@@ -75,12 +80,14 @@ class AgentSession:
     llm_client : ``LLMClient`` or None, optional
             LLM provider client. Defaults to ``AnthropicLLMClient``.
     tools : list[dict] or None, optional
-            Tool schemas to pass to the LLM. Defaults to the built-in demo
-            tool schemas if not provided.
+            Tool schemas surfaced to the LLM. Defaults to ``[]`` — the session
+            has no tools available unless the caller supplies them or a
+            framework adapter registers them. (Earlier releases defaulted to
+            an internal demo-tool set; this has been removed.)
     tool_handler : callable or None, optional
-            Async function ``(name: str, args: dict) -> str`` for dispatching
-            tool calls. When provided, used instead of the built-in mock
-            tool dispatcher for tools not handled by memory.
+            Sync or async function ``(name: str, args: dict) -> str`` for
+            dispatching tool calls. When absent, tool calls that aren't memory
+            tools surface a ``{"error": ...}`` result to the LLM.
     """
 
     def __init__(
@@ -89,7 +96,7 @@ class AgentSession:
         context: SessionContext,
         model: str = "claude-sonnet-4-6",
         hitl_queue: HITLQueue | None = None,
-        hitl_timeout: float = 300.0,
+        hitl_timeout: float = DEFAULT_HITL_TIMEOUT_SECONDS,
         credential_broker: CredentialBroker | None = None,
         memory_store: MemoryStore | None = None,
         audit_store: AuditStore | None = None,
@@ -109,7 +116,12 @@ class AgentSession:
         self.audit_store = audit_store
         self._llm = llm_client or AnthropicLLMClient()
         self._tracer = get_tracer("kitelogik.agent")
-        self._tools = tools or TOOL_SCHEMAS
+        # No default tools — callers must pass ``tools=[...]`` explicitly (or
+        # leave empty and register tools through an adapter / ``tool_handler``).
+        # Earlier releases defaulted to a private demo-tool set; that leaked
+        # mock data (e.g. fake customer records) into the public API surface
+        # and has been removed intentionally.
+        self._tools: list[dict] = list(tools) if tools is not None else []
         self._tool_handler = tool_handler
 
     async def run_async(
@@ -220,7 +232,7 @@ class AgentSession:
         for _ in range(max_iterations):
             response = await self._llm.create_message(
                 model=self.model,
-                max_tokens=4096,
+                max_tokens=DEFAULT_MAX_TOKENS,
                 tools=self._tools,  # type: ignore[arg-type]
                 system=system,
                 messages=messages,
@@ -480,7 +492,19 @@ class AgentSession:
                 raw_output = handler_result
             raw_output = str(raw_output)
         else:
-            raw_output = execute_tool(tool_name, args)
+            # No tool_handler configured — surface this cleanly to the LLM as
+            # a tool-result error rather than crashing the session. Users wire
+            # real tools by passing ``tool_handler=`` or using a framework
+            # adapter (e.g. OpenAIAdapter.register()).
+            raw_output = json.dumps(
+                {
+                    "error": (
+                        f"No handler registered for tool '{tool_name}'. "
+                        "Pass `tool_handler=` to AgentSession or register the "
+                        "tool through a framework adapter."
+                    )
+                }
+            )
         if self.gate:
             sanitized = self.gate.sanitize_response(raw_output)
             if on_event:

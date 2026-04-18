@@ -1,11 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for agents.tools — execute_tool() and TOOL_SCHEMAS.
+Tests for the private demo-tool fixtures (``kitelogik.agents._demo_tools``).
+
+These tools are not public API — they exist to exercise the governance
+pipeline end-to-end in the test suite and in demo scripts. This module
+verifies that the demo dispatcher responds with the shapes the integration
+tests rely on.
 """
 
 import json
 
-from kitelogik.agents.tools import TOOL_SCHEMAS, execute_tool
+from kitelogik.agents._demo_tools import TOOL_SCHEMAS, execute_tool
 
 
 def test_read_customer_record_known_customer():

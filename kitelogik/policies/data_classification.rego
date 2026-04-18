@@ -5,6 +5,7 @@ import future.keywords.if
 import future.keywords.in
 
 default allow := false
+
 default deny := false
 
 # Allow when no classification is set

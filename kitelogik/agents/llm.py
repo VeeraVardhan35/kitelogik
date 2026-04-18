@@ -24,6 +24,12 @@ from typing import Any, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
+# Default upper bound on tokens per LLM response. Anthropic's messages API
+# requires an explicit ``max_tokens`` value; 4096 is large enough for most
+# agent turns (including multi-tool-use sequences) without spiking cost on
+# runaway generations. Callers override via the ``max_tokens`` argument.
+DEFAULT_MAX_TOKENS = 4096
+
 
 @dataclass
 class ToolCall:
@@ -60,7 +66,7 @@ class LLMClient(Protocol):
         messages: list[dict],
         tools: list[dict],
         system: str,
-        max_tokens: int = 4096,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> LLMResponse: ...
 
     def format_tool_result(self, tool_call_id: str, content: str) -> dict:
@@ -103,7 +109,7 @@ class AnthropicLLMClient:
         messages: list[dict],
         tools: list[dict],
         system: str,
-        max_tokens: int = 4096,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> LLMResponse:
         """
         Send a message to Claude and return a normalized response.

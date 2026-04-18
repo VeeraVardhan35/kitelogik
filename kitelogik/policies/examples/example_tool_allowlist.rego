@@ -32,76 +32,73 @@ import future.keywords.in
 
 default allow := false
 
+default deny := false
+
 # ── Tool allowlists per agent role ────────────────────────────────────────────
 # Only tools listed here can be called by agents with that role.
 # A tool absent from this list is implicitly denied — you do not need an
 # explicit deny rule for it.
 
 role_tools := {
-    # Basic customer service — no money movement, no data writes
-    "support_agent": {
-        "get_customer_record",
-        "list_transactions",
-        "send_notification",
-        "query_memory",
-        "write_memory",
-    },
-
-    # Billing agent — can approve small refunds, cannot delete or execute code
-    "billing_agent": {
-        "get_customer_record",
-        "list_transactions",
-        "approve_refund",
-        "update_billing_record",
-        "send_notification",
-        "query_memory",
-        "write_memory",
-    },
-
-    # Read-only research agent — no side effects at all
-    "research_agent": {
-        "get_customer_record",
-        "list_transactions",
-        "query_memory",
-        "fetch_web_page",        # read-only external tool
-        "search_knowledge_base", # read-only internal tool
-    },
-
-    # Code execution agent — has sandbox, but cannot touch customer data
-    "code_agent": {
-        "execute_code",
-        "read_file",    # within sandbox only; security.rego blocks sensitive paths
-        "write_file",   # within sandbox only
-        "query_memory",
-        "write_memory",
-    },
-
-    # Orchestrator — can spawn workers and call coordination tools
-    "orchestrator": {
-        "get_customer_record",
-        "list_transactions",
-        "send_notification",
-        "query_memory",
-        "write_memory",
-        "delegate_task",   # creates a child agent session
-    },
-
-    # Spawned worker agent (delegation depth >= 1) — minimal permissions
-    # The orchestrator further restricts this via CredentialBroker.delegate()
-    "worker_agent": {
-        "get_customer_record",
-        "list_transactions",
-        "query_memory",
-    },
+	# Basic customer service — no money movement, no data writes
+	"support_agent": {
+		"get_customer_record",
+		"list_transactions",
+		"send_notification",
+		"query_memory",
+		"write_memory",
+	},
+	# Billing agent — can approve small refunds, cannot delete or execute code
+	"billing_agent": {
+		"get_customer_record",
+		"list_transactions",
+		"approve_refund",
+		"update_billing_record",
+		"send_notification",
+		"query_memory",
+		"write_memory",
+	},
+	# Read-only research agent — no side effects at all
+	"research_agent": {
+		"get_customer_record",
+		"list_transactions",
+		"query_memory",
+		"fetch_web_page", # read-only external tool
+		"search_knowledge_base", # read-only internal tool
+	},
+	# Code execution agent — has sandbox, but cannot touch customer data
+	"code_agent": {
+		"execute_code",
+		"read_file", # within sandbox only; security.rego blocks sensitive paths
+		"write_file", # within sandbox only
+		"query_memory",
+		"write_memory",
+	},
+	# Orchestrator — can spawn workers and call coordination tools
+	"orchestrator": {
+		"get_customer_record",
+		"list_transactions",
+		"send_notification",
+		"query_memory",
+		"write_memory",
+		"delegate_task", # creates a child agent session
+	},
+	# Spawned worker agent (delegation depth >= 1) — minimal permissions
+	# The orchestrator further restricts this via CredentialBroker.delegate()
+	"worker_agent": {
+		"get_customer_record",
+		"list_transactions",
+		"query_memory",
+	},
 }
 
 # ── Core allow rule ───────────────────────────────────────────────────────────
 # The action must appear in the role's allowlist.
 # If the role has no entry in role_tools, nothing is allowed.
 allow if {
-    role  := input.context.user_role
-    tools := role_tools[role]   # undefined if role not in map → rule body fails → deny
-    input.action in tools
+	role := input.context.user_role
+	tools := role_tools[role] # undefined if role not in map → rule body fails → deny
+	input.action in tools
 }
 
 # ── Catch-all: unknown roles ──────────────────────────────────────────────────
@@ -139,64 +136,64 @@ allow if {
 # ── Embedded OPA tests (run with: opa test policies/examples/ -v) ──────────────
 
 test_support_agent_allowed_tool if {
-    allow with input as {
-        "action": "get_customer_record",
-        "context": {"user_role": "support_agent"},
-    }
+	allow with input as {
+		"action": "get_customer_record",
+		"context": {"user_role": "support_agent"},
+	}
 }
 
 test_support_agent_blocked_tool if {
-    not allow with input as {
-        "action": "execute_code",
-        "context": {"user_role": "support_agent"},
-    }
+	not allow with input as {
+		"action": "execute_code",
+		"context": {"user_role": "support_agent"},
+	}
 }
 
 test_code_agent_can_execute if {
-    allow with input as {
-        "action": "execute_code",
-        "context": {"user_role": "code_agent"},
-    }
+	allow with input as {
+		"action": "execute_code",
+		"context": {"user_role": "code_agent"},
+	}
 }
 
 test_code_agent_cannot_read_customer if {
-    not allow with input as {
-        "action": "get_customer_record",
-        "context": {"user_role": "code_agent"},
-    }
+	not allow with input as {
+		"action": "get_customer_record",
+		"context": {"user_role": "code_agent"},
+	}
 }
 
 test_research_agent_read_only if {
-    allow with input as {
-        "action": "fetch_web_page",
-        "context": {"user_role": "research_agent"},
-    }
+	allow with input as {
+		"action": "fetch_web_page",
+		"context": {"user_role": "research_agent"},
+	}
 }
 
 test_research_agent_no_writes if {
-    not allow with input as {
-        "action": "write_memory",
-        "context": {"user_role": "research_agent"},
-    }
+	not allow with input as {
+		"action": "write_memory",
+		"context": {"user_role": "research_agent"},
+	}
 }
 
 test_worker_minimal_set if {
-    allow with input as {
-        "action": "list_transactions",
-        "context": {"user_role": "worker_agent"},
-    }
+	allow with input as {
+		"action": "list_transactions",
+		"context": {"user_role": "worker_agent"},
+	}
 }
 
 test_worker_cannot_delegate if {
-    not allow with input as {
-        "action": "delegate_task",
-        "context": {"user_role": "worker_agent"},
-    }
+	not allow with input as {
+		"action": "delegate_task",
+		"context": {"user_role": "worker_agent"},
+	}
 }
 
 test_unknown_role_denied if {
-    not allow with input as {
-        "action": "get_customer_record",
-        "context": {"user_role": "rogue_agent"},
-    }
+	not allow with input as {
+		"action": "get_customer_record",
+		"context": {"user_role": "rogue_agent"},
+	}
 }

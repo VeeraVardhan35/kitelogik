@@ -14,6 +14,17 @@ from pathlib import Path
 
 from .models import ActionStatus, PendingAction
 
+# Default age (seconds) after which a still-PENDING action is considered
+# stale and auto-expired. Kept in sync with ``AgentSession``'s default HITL
+# timeout so a session that times out waiting for a decision and a sweeper
+# that expires old rows agree on the cutoff.
+DEFAULT_ACTION_TIMEOUT_SECONDS = 300
+
+# Default maximum time an ``await_decision`` caller will block on an event
+# before giving up. Matches the expiry cutoff above — a caller should never
+# wait longer than the record would survive.
+DEFAULT_AWAIT_TIMEOUT_SECONDS = 300.0
+
 
 class _NullEvent:
     """No-op stand-in used when set() is called for an un-tracked action_id."""
@@ -241,7 +252,7 @@ class HITLQueue:
     async def get_pending(self) -> list[PendingAction]:
         return await asyncio.to_thread(self._sync_get_pending)
 
-    async def expire_old(self, timeout_seconds: int = 300) -> int:
+    async def expire_old(self, timeout_seconds: int = DEFAULT_ACTION_TIMEOUT_SECONDS) -> int:
         """Mark overdue PENDING actions as TIMED_OUT.
 
         Also sets any in-process ``asyncio.Event`` instances so
@@ -266,7 +277,7 @@ class HITLQueue:
     async def start_expiry_task(
         self,
         check_interval_seconds: float = 30.0,
-        action_timeout_seconds: int = 300,
+        action_timeout_seconds: int = DEFAULT_ACTION_TIMEOUT_SECONDS,
     ) -> asyncio.Task:
         """Start a background ``asyncio.Task`` that periodically calls ``expire_old()``.
 
@@ -338,7 +349,7 @@ class HITLQueue:
     async def wait_for_decision(
         self,
         action_id: str,
-        timeout_seconds: float = 300.0,
+        timeout_seconds: float = DEFAULT_AWAIT_TIMEOUT_SECONDS,
     ) -> PendingAction:
         """Block until the action is approved, denied, or the timeout expires.
 

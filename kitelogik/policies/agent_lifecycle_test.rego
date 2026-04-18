@@ -120,6 +120,111 @@ test_deny_delegate_scope_escalation if {
 	}
 }
 
+# --- malformed delegation_depth tests ---
+#
+# These close a structural-ordering bypass. In OPA, null < bool < number, so
+# `null <= 2` evaluates to TRUE — a spawn/delegate event with a null or missing
+# delegation_depth would silently satisfy the depth cap and be allowed at any
+# depth. The is_number guard on allow rules plus the explicit non-number deny
+# rules close this. These tests lock the behaviour in place.
+
+test_deny_spawn_null_depth if {
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.spawn",
+		"action": "agent.spawn",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+			"delegation_depth": null,
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_no_allow_spawn_null_depth if {
+	not agent_lifecycle.allow with input as {
+		"event_type": "agent.spawn",
+		"action": "agent.spawn",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+			"delegation_depth": null,
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_deny_spawn_missing_depth if {
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.spawn",
+		"action": "agent.spawn",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_deny_spawn_string_depth if {
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.spawn",
+		"action": "agent.spawn",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+			"delegation_depth": "0",
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_deny_delegate_null_depth if {
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.delegate",
+		"action": "agent.delegate",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+			"delegation_depth": null,
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_deny_delegate_missing_depth if {
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.delegate",
+		"action": "agent.delegate",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
+test_deny_delegate_boolean_depth if {
+	# bool < number in OPA — `true <= 1` evaluates TRUE without the is_number guard
+	agent_lifecycle.deny with input as {
+		"event_type": "agent.delegate",
+		"action": "agent.delegate",
+		"context": {
+			"session_id": "s1",
+			"user_role": "admin",
+			"session_scopes": ["read"],
+			"delegation_depth": true,
+		},
+		"requested_capabilities": ["read"],
+	}
+}
+
 # --- no-match tests ---
 
 test_no_allow_for_tool_call_event if {

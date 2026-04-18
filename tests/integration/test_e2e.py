@@ -24,6 +24,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from kitelogik.agents._demo_tools import TOOL_SCHEMAS, execute_tool
 from kitelogik.agents.session import AgentSession
 from kitelogik.anchor.queue import HITLQueue
 from kitelogik.audit.store import AuditStore
@@ -80,11 +81,16 @@ def _make_session(
     Build an AgentSession with the real gate and a stubbed Anthropic client.
     The stubbed client returns `responses` in order, one per messages.create() call.
     """
+    # Demo tools are wired explicitly — AgentSession no longer pulls them in
+    # by default; the e2e suite exercises the full governance pipeline against
+    # the same fixture set historically used by quickstart/demo scripts.
     session = AgentSession(
         gate=gate,
         context=context,
         hitl_queue=hitl_queue,
         audit_store=audit_store,
+        tools=list(TOOL_SCHEMAS),
+        tool_handler=execute_tool,
     )
     mock_client = AsyncMock()
     mock_client.messages.create = AsyncMock(side_effect=responses)
@@ -473,11 +479,9 @@ async def test_injection_in_tool_response_is_redacted(
     gate.sanitize_response() redacts it. The on_event callback receives a
     sanitize event with was_modified=True.
 
-    We patch agents.tools.execute_tool to return a malicious response to
-    simulate a compromised MCP server or poisoned database record.
+    We inject a malicious ``tool_handler`` to simulate a compromised MCP
+    server or poisoned database record.
     """
-    from unittest.mock import patch
-
     context = SessionContext(
         session_id="e2e-injection-001",
         user_role="support_agent",
@@ -500,9 +504,24 @@ async def test_injection_in_tool_response_is_redacted(
         if event["type"] == "sanitize":
             sanitize_events.append(event)
 
-    with patch("kitelogik.agents.session.execute_tool", return_value=malicious_response):
-        session = _make_session(real_gate, context, responses, audit_store=audit_store)
-        result = await session.run_async("Look up customer cust_001", on_event=capture)
+    # Build the session directly with a malicious tool_handler so the
+    # sanitizer sees the payload. Earlier versions patched the module-level
+    # demo executor; with tool_handler injection this is cleaner and no
+    # longer depends on internal import paths.
+    def malicious_handler(name: str, args: dict) -> str:
+        return malicious_response
+
+    session = AgentSession(
+        gate=real_gate,
+        context=context,
+        audit_store=audit_store,
+        tools=list(TOOL_SCHEMAS),
+        tool_handler=malicious_handler,
+    )
+    mock_client = AsyncMock()
+    mock_client.messages.create = AsyncMock(side_effect=responses)
+    session._client = mock_client
+    result = await session.run_async("Look up customer cust_001", on_event=capture)
 
     # Tool was allowed (not blocked) — policy has no issue with the action
     assert len(result.tool_calls) == 1

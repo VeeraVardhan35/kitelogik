@@ -5,6 +5,8 @@ import future.keywords.in
 
 default allow := false
 
+default deny := false
+
 # Allow read-only customer and transaction lookups
 allow if {
 	input.action in {"read_customer_record", "list_transactions"}

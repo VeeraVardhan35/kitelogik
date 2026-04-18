@@ -11,6 +11,7 @@ package kitelogik.library.cost_cap
 import future.keywords.if
 
 default allow := false
+
 default deny := false
 
 # Allow when no cost budget is configured

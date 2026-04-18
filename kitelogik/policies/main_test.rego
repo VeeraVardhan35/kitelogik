@@ -341,7 +341,7 @@ test_risk_tier_operational_default if {
 
 test_risk_tier_not_security_critical_when_allowed if {
 	# A clean allowed action must NOT classify as SECURITY_CRITICAL
-	not (main.risk_tier == "SECURITY_CRITICAL") with input as {
+	not main.risk_tier == "SECURITY_CRITICAL" with input as {
 		"action": "read_customer_record",
 		"resource_path": null,
 		"args": {"session_id": null},

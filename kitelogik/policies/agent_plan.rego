@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 package kitelogik.agent_plan
 
+import future.keywords.every
 import future.keywords.if
 import future.keywords.in
-import future.keywords.every
 
 default allow := false
+
 default deny := false
 
 # Maximum number of steps allowed in a plan

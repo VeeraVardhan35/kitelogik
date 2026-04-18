@@ -77,11 +77,15 @@ jobs:
       - name: Run OPA unit tests
         run: opa test kitelogik/policies/ -v
       - name: Check policy formatting
-        run: opa fmt --diff kitelogik/policies/
+        run: opa fmt --fail --diff kitelogik/policies/
 
   integration:
     name: Integration tests (Docker + OPA)
     runs-on: ubuntu-latest
+    # Weekly cron + manual dispatch only — not on PRs. Deliberate: the Docker+OPA
+    # spin-up slows every PR, and the unit + OPA-test jobs already cover the
+    # policy surface. Run manually (Actions → Run workflow) before a release to
+    # catch any integration-only drift.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     services:
       opa:

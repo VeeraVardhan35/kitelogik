@@ -56,7 +56,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Fragile asyncpg result parsing** — `postgres_queue.py` `_decide()` now handles unexpected status string formats with try/except instead of bare `int()` conversion
 
 ### Tests
-- Test count: 352 → 681 (42 test files)
+- Test count: 352 → 454 (after enterprise-package split; dashboard/gateway/orchestrator/sandbox tests moved to `kitelogik-enterprise`)
 - Added: fuzz tests (gateway parsing, policy input, sanitizer), adapter tests, hierarchy tests, Regorus tests, CLI tests, policy compiler tests, metrics tests, MCP stdio tests
 - 13 OPA Rego test files (8 core + 5 library)
 

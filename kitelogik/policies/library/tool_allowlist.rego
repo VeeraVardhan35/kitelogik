@@ -13,6 +13,8 @@ import future.keywords.in
 
 default allow := false
 
+default deny := false
+
 # Add the tool names your agent is permitted to call
 _allowed_tools := {
 	"read_file",

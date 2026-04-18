@@ -1,12 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Mock tool implementations for Phase 1 demo.
+Private demo tool fixtures — NOT part of the public ``kitelogik`` API.
 
-Each tool has:
-  - A schema (ToolParam) passed to the Anthropic API so the model knows what's available
-  - An executor function that returns a JSON string result
+Provides ``TOOL_SCHEMAS`` and ``execute_tool`` used by the integration test
+suite (``tests/integration/test_e2e.py``) and internal demo scripts to
+exercise the governance pipeline end-to-end without wiring up real MCP
+servers.
 
-In Phase 2, these are replaced by real MCP server integrations.
+The leading underscore (``_demo_tools``) signals: not importable as public
+API, no backward-compatibility guarantee, not surfaced by any default code
+path. ``AgentSession`` does not reach for these automatically — callers must
+pass ``tools=TOOL_SCHEMAS`` and ``tool_handler=execute_tool`` explicitly
+when they want the demo behaviour.
+
+For production use, register your own MCP servers or pass a custom
+``tool_handler`` to ``AgentSession``.
 """
 
 import json

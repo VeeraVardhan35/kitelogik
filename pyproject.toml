@@ -10,16 +10,21 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [{name = "Kite Logik Contributors"}]
-keywords = ["ai", "agents", "governance", "opa", "policy", "llm", "security"]
+keywords = ["ai", "agents", "governance", "opa", "policy", "llm", "security", "mcp", "guardrails"]
 classifiers = [
+    "Development Status :: 4 - Beta",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -37,11 +42,12 @@ dependencies = [
 kitelogik = "kitelogik.cli:main"
 
 [project.urls]
-Homepage = "https://kitelogik.com"
+Homepage = "https://www.kitelogik.com"
 Repository = "https://github.com/kitelogik/kitelogik"
 Documentation = "https://github.com/kitelogik/kitelogik#readme"
 "Bug Tracker" = "https://github.com/kitelogik/kitelogik/issues"
 Changelog = "https://github.com/kitelogik/kitelogik/blob/main/CHANGELOG.md"
+"Source Code" = "https://github.com/kitelogik/kitelogik"
 
 [project.optional-dependencies]
 regorus = ["regoruspy>=0.1.0"]
@@ -84,6 +90,9 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["kitelogik*", "examples*"]
 exclude = ["tests*", ".venv*"]
+
+[tool.setuptools.package-data]
+kitelogik = ["py.typed", "policies/**/*.rego", "policies/**/*.yaml", "policies/**/*.yml"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

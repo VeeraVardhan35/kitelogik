@@ -3,6 +3,8 @@ package kitelogik.delegation
 import future.keywords.if
 import future.keywords.in
 
+default allow := false
+
 default deny := false
 
 # Hard cap: no delegation chain deeper than 2

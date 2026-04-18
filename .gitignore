@@ -132,9 +132,13 @@ traces/
 # ── Kite Logik — screenshot artifacts ────────────────────────────────────────
 screenshot_*.png
 review_*.png
+kl-*.png
 
 # ── Screenshots ──────────────────────────────────────────────────────────────
 Screenshot*.png
+
+# ── Playwright MCP artifacts ─────────────────────────────────────────────────
+.playwright-mcp/
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 .docker/

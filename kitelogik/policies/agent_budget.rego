@@ -4,6 +4,7 @@ package kitelogik.agent_budget
 import future.keywords.if
 
 default allow := false
+
 default deny := false
 
 # Allow when no budget is set (all budget fields are null/absent)

@@ -2,6 +2,8 @@ package kitelogik.security
 
 import future.keywords.if
 
+default allow := false
+
 default deny := false
 
 # Hard block: sensitive file extensions (including mid-name, e.g. file.env.bak)

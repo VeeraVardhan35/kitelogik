@@ -1,9 +1,10 @@
 # Kite Logik
 
 [![CI](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml/badge.svg)](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-681%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
+[![Tests](https://img.shields.io/badge/tests-454%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org)
+[![PyPI](https://img.shields.io/pypi/v/kitelogik.svg)](https://pypi.org/project/kitelogik/)
 
 **The governance control plane for AI agents.** Kite Logik governs what your agents can do, what they can spawn, what they can access, and what resources they can consume — enforced at the infrastructure level, not the prompt level.
 
@@ -354,7 +355,7 @@ For enterprise licensing: [licensing@kitelogik.com](mailto:licensing@kitelogik.c
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 docker compose up -d opa    # start OPA policy engine
 
-make test           # 681+ tests
+make test           # 454 tests
 make lint           # ruff check + format
 
 # Policy management

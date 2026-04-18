@@ -11,8 +11,11 @@ import future.keywords.if
 import future.keywords.in
 
 default allow := false
+
 default deny := false
+
 default risk_tier := "OPERATIONAL"
+
 default requires_hitl := false
 
 # Hard deny from security policy overrides all allow rules
