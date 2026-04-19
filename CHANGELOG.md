@@ -8,179 +8,112 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-- **Enterprise split** — Moved dashboard, gateway, orchestrator, sandbox, SIEM, Prometheus metrics, MCP mock server, Anchor REST API, and Postgres backends to the `kitelogik-enterprise` package. OSS now focuses on the core governance pipeline: embedded SDK, policy engine, HITL queue, credentials, audit, memory, and 11 framework adapters.
-- `AgentSession` simplified — removed `gateway_client`, `sandbox_manager`, and `mcp_client` parameters. Sessions now use in-process `PolicyGate` only.
-- `Orchestrator` and `OrchestratorResult` removed from `kitelogik` public API — available via `kitelogik-enterprise`.
-
-### Added
-
-#### Tether — Policy Engine Enhancements
-- **RegorusClient** — In-process Rego evaluator using the regorus (Rust) engine; experimental — requires building regoruspy from source (see [microsoft/regorus](https://github.com/microsoft/regorus))
-- **HierarchicalEvaluator** — 2-tier policy hierarchy (global + project) with deny-overrides semantics and resolution traces
-- **YAML policy compiler** — Write policies in YAML, compile to Rego with `kitelogik compile`; JSON Schema validation via `kitelogik validate`
-
-#### Framework Adapters (9 new)
-- **BaseGovernedAdapter** — Extracted base class centralizing the governance pipeline for all adapters
-- **CrewAI** adapter (`kitelogik/adapters/crewai.py`)
-- **OpenAI Agents SDK** adapter (`kitelogik/adapters/openai_agents.py`)
-- **LangGraph** adapter (`kitelogik/adapters/langgraph.py`)
-- **Google ADK** adapter (`kitelogik/adapters/google_adk.py`)
-- **PydanticAI** adapter (`kitelogik/adapters/pydantic_ai.py`)
-- **LlamaIndex** adapter (`kitelogik/adapters/llamaindex.py`)
-- **Semantic Kernel** adapter (`kitelogik/adapters/semantic_kernel.py`)
-- **Haystack** adapter (`kitelogik/adapters/haystack.py`)
-- **Dify** adapter (`kitelogik/adapters/dify.py`)
-
-#### CLI Enhancements
-- `kitelogik compile` — YAML → Rego policy compilation
-- `kitelogik validate` — JSON Schema validation of YAML policies
-- `kitelogik compliance` — Governance compliance audit with OWASP Agentic Security Initiative mapping
-
-#### Observability
-- **Prometheus metrics** (`observability/metrics.py`) — Policy decision counters, HITL queue gauges, gate latency histograms
-
-#### Policies
-- **Starter policy library** (`policies/library/`) — 5 ready-to-use policies with OPA tests: tool_allowlist, pii_protection, read_only, cost_cap, rate_limiting
-
-#### PostgreSQL Backends
-- Postgres backends for HITL queue, credentials, memory, and audit now included in OSS (previously enterprise-only staging)
-
-### Changed
-- All public API docstrings converted to numpy-style format for consistency
-- `PolicyEvaluator` protocol now implemented by OPAClient, RegorusClient, and HierarchicalEvaluator
-- `HierarchicalEvaluator` and `ResolutionStep` exported from top-level `kitelogik` package
-
-### Fixed
-- **Memory sanitization tier mismatch** — Postgres memory store now sanitizes `DELEGATED` tier data, aligning with SQLite backend behaviour
-- **Fragile asyncpg result parsing** — `postgres_queue.py` `_decide()` now handles unexpected status string formats with try/except instead of bare `int()` conversion
-
-### Tests
-- Test count: 352 → 454 (after enterprise-package split; dashboard/gateway/orchestrator/sandbox tests moved to `kitelogik-enterprise`)
-- Added: fuzz tests (gateway parsing, policy input, sanitizer), adapter tests, hierarchy tests, Regorus tests, CLI tests, policy compiler tests, metrics tests, MCP stdio tests
-- 13 OPA Rego test files (8 core + 5 library)
+_No unreleased changes._
 
 ---
 
-## [0.1.0] — 2026-03-27
+## [0.1.0] — 2026-04-19
 
-Initial OSS release.
+Initial OSS release on PyPI. This release is the governance core: Tether (policy
+engine), Anchor (HITL + credential broker + observability), memory store with
+provenance, MCP client with supply-chain verification, immutable audit log, 11
+framework adapters, CLI, and a starter policy library. Gateway, Dashboard,
+Orchestrator, and Sandbox runtimes live in the `kitelogik-enterprise` package
+and are not part of OSS.
 
-### Added
+### Added — Tether (Policy Engine)
+- OPA/Rego policy engine integration via HTTP; fail-closed on OPA unreachability (returns `deny=True, risk_tier=SECURITY_CRITICAL`).
+- Deny-by-default enforcement — every policy file opens with `default allow := false`.
+- Five risk tiers: `INFORMATIONAL` → `OPERATIONAL` → `TRANSACTIONAL_HIGH` → `DESTRUCTIVE` → `SECURITY_CRITICAL`.
+- `PolicyGate` — scope-based + role-based evaluation on every tool call, schema validation before OPA, per-stage OpenTelemetry spans, `rule_matched` on every decision.
+- `HierarchicalEvaluator` — 2-tier policy hierarchy (global + project) with deny-overrides semantics and resolution traces.
+- `RegorusClient` — in-process Rego evaluator via the regorus (Rust) engine. Experimental, opt-in via the `[regorus]` extra.
+- YAML policy compiler: write policies in YAML, compile to Rego via `kitelogik compile`; JSON Schema validation via `kitelogik validate`.
+- Starter Rego policies: `financial`, `security`, `delegation`, `agent_lifecycle`, `agent_plan`, `agent_budget`, `data_classification`, `main`.
+- Policy library (`policies/library/`): `tool_allowlist`, `pii_protection`, `read_only`, `cost_cap`, `rate_limiting` — all with OPA tests.
+- Type guards on all numeric fields — prevents null/bool/string/negative amount bypass.
 
-#### Tether — Policy Gate
-- OPA/Rego policy engine integration via HTTP; fail-closed on OPA unreachability (returns `deny=True, risk_tier=SECURITY_CRITICAL`)
-- Deny-by-default enforcement — every policy file opens with `default allow := false`
-- Five risk tiers: `INFORMATIONAL` → `OPERATIONAL` → `TRANSACTIONAL_HIGH` → `DESTRUCTIVE` → `SECURITY_CRITICAL`
-- Scope-based and role-based policy evaluation on every tool call
-- Schema validation of tool call inputs before OPA evaluation
-- Financial policy domain (`financial.rego`): refund thresholds, read/write/notification rules
-- Security policy domain (`security.rego`): blocked file extensions, system path blocking, path traversal prevention, shell execution gating
-- Delegation policy domain (`delegation.rego`): delegation depth cap, per-depth refund caps
-- Main aggregation policy (`main.rego`): hard-deny overrides are final
-- Type guards on all numeric fields — prevents null/bool/string/negative amount bypass
-- OpenTelemetry span on every gate evaluation with per-stage child spans (credential validation → schema → OPA)
-- `rule_matched` field in every `PolicyDecision` — identifies the specific Rego rule that fired
+### Added — Anchor (Oversight)
+- Async HITL queue backed by SQLite; agent suspends on `asyncio.Event` (no polling).
+- Full action lifecycle: `PENDING` → `APPROVED` / `DENIED` / `TIMED_OUT`, with per-session timeout and decision metadata (`decided_by`, `decided_at`, `denial_reason`).
+- Background expiry task with consecutive-failure escalation to CRITICAL logging.
+- `CredentialBroker` — in-memory and SQLite-backed brokers, short-lived scoped tokens, parent/child delegation with scope-subset enforcement, revocation at session end.
 
-#### Anchor — Human-in-the-Loop Queue
-- Async HITL queue backed by SQLite; agent suspends on `asyncio.Event` (not a polling loop)
-- Full action lifecycle: `PENDING` → `APPROVED` / `DENIED` / `TIMED_OUT`
-- Configurable per-session HITL timeout (default 300s)
-- Background expiry task with consecutive-failure escalation to CRITICAL logging
-- Decision metadata: `decided_by`, `decided_at`, `denial_reason`
-- REST API: `GET /api/pending`, `POST /api/decide/{id}`
-- One-click approve/deny from the live dashboard
+### Added — Audit (Immutable Logging)
+- Append-only SQLite audit store; immutability enforced by database triggers (`UPDATE`/`DELETE` aborted at the SQL level).
+- Every tool call recorded with the full `PolicyDecision`, policy version SHA, and session context.
+- `PolicyReplayer`: re-evaluate historical records against current policy with `outcome_changed` flag per record.
+- Session export includes a SHA-256 integrity hash for tamper detection.
 
-#### Sandbox — Container Isolation
-- Per-session Docker container; spawned at session start, torn down in `finally` block
-- `network_mode=none` — all egress blocked by default
-- CPU, memory, and PID limits enforced at container creation
-- `sandbox_verified` flag gating code execution (enforced in `security.rego`)
+### Added — Memory (Provenance-Tracked)
+- SQLite-backed async memory store.
+- Five trust tiers (most → least trusted): `TRUSTED` → `INTERNAL` → `DELEGATED` → `EXTERNAL` → `UNTRUSTED`.
+- Provenance metadata on every write: `source`, `session_id`, `trust_tier`, `created_at`.
+- Auto-sanitization on writes from untrusted tiers with `sanitized` flag persisted per entry.
+- Session-scoped reads — non-empty `session_id` required.
 
-#### Credentials — Session Token Management
-- Short-lived session tokens with explicit scopes and TTL
-- In-memory `CredentialBroker` and SQLite-backed `PersistentCredentialBroker`
-- Token revocation at session end; validated on every gate call
-- Delegation: child scopes must be ⊆ parent scopes; child cannot outlive parent
-- Delegation depth tracked in session context and enforced by OPA (max depth 2)
+### Added — Injection Defence
+- Indirect prompt injection detection: instruction-override phrases, system-prompt probes, role overrides.
+- Tool output sanitized before entering agent context (`sanitize_tool_output`).
+- Tool schema sanitizer (`sanitize_tool_schema`) for externally-sourced MCP `tools/list` responses.
+- Unicode tag-char smuggling defence: NFKC normalization + demirroring of the U+E0020–U+E007E ASCII-mirror block before scanning.
+- Role-confusion patterns (`assume the role`, `act as`, `in the role of`, `if you were`).
+- Memory writes sanitized at untrusted trust tiers.
+- Command-injection pattern detection in tool arguments.
 
-#### Memory — Provenance-Tracked Agent Memory
-- SQLite-backed memory store with async I/O
-- Five trust tiers: `INTERNAL` → `VERIFIED` → `DELEGATED` → `EXTERNAL` → `UNTRUSTED`
-- Provenance metadata on every write: `source`, `session_id`, `trust_tier`, `created_at`
-- Auto-sanitization on writes from untrusted tiers; `sanitized` flag stored per entry
-- Session-scoped reads enforced — non-empty `session_id` required
+### Added — Observability
+- OpenTelemetry instrumentation aligned with GenAI Semantic Conventions v1.37+.
+- File trace exporter by default; OTLP/HTTP export via `--otlp <url>`.
+- Session ID correlated across all spans; policy version SHA stamped on every gate span.
 
-#### Injection Defence
-- Indirect prompt injection detection: instruction override phrases, system prompt probes, role overrides
-- Tool output sanitized before entering agent context
-- Memory writes sanitized at untrusted trust tiers
-- Command injection pattern detection in tool arguments
-- 12-payload adversarial corpus; 7 benign counter-examples confirming no false positives
+### Added — MCP Integration
+- Async JSON-RPC 2.0 MCP client with tool discovery and dispatch.
+- Supply-chain integrity verification: SHA-256 manifest checks on MCP server packages.
+- Response sanitization before tool output enters agent context.
 
-#### Audit — Immutable Logging
-- Append-only SQLite audit store; immutability enforced by database trigger (no `UPDATE`/`DELETE`)
-- Every tool call recorded with `PolicyDecision`, policy version SHA, session context
-- `PolicyReplayer`: re-evaluate historical records against current policy; `outcome_changed` flag per record
-- Session export with SHA-256 integrity hash
+### Added — Agent Session
+- `AgentSession` — in-process direct mode over `PolicyGate`.
+- Session token issued at start, revoked unconditionally in the `finally` block, including any delegated child tokens attached to the session.
+- Anthropic Python SDK as the default LLM client (`claude-sonnet-4-6`).
 
-#### Observability
-- OpenTelemetry instrumentation (GenAI Semantic Conventions v1.37+)
-- File trace exporter by default; OTLP/HTTP export via `--otlp <url>` flag
-- Session ID correlated across all spans
-- Policy version SHA on every gate span
+### Added — Framework Adapters (11)
+- `@governed` decorator and `GovernedToolbox` for inline enforcement.
+- `OpenAIAdapter`, `LangChainAdapter` (`as_governed_tool` / `govern_toolkit`), `LangGraphAdapter`, `CrewAIAdapter`, `OpenAIAgentsAdapter`, `GoogleADKAdapter`, `PydanticAIAdapter`, `LlamaIndexAdapter`, `SemanticKernelAdapter`, `HaystackAdapter`, `DifyAdapter`.
+- `BaseGovernedAdapter` centralizes the governance pipeline.
 
-#### MCP Integration
-- Async JSON-RPC 2.0 MCP client with tool discovery and dispatch
-- Supply chain integrity verification: SHA-256 manifest checks on MCP server packages
-- Response sanitization before tool output enters agent context
-- Mock MCP server for demos and testing
+### Added — CLI
+- `kitelogik init <project>` — scaffold a governed-agent project.
+- `kitelogik compile` — YAML → Rego compilation.
+- `kitelogik validate` — JSON Schema validation of YAML policies.
+- `kitelogik test` — OPA Rego test runner with a bundled Docker fallback.
+- `kitelogik check` — evaluate a governance event via OPA from stdin JSON.
+- `kitelogik compliance` — governance audit with OWASP Agentic Security Initiative mapping.
+- Automatic OPA-in-Docker fallback for `validate` / `test` / `check` when no `opa` binary is on PATH — contributors without a local OPA install still get a working CLI.
 
-#### Gateway — MCP Standalone Service
-- FastAPI gateway with full governance pipeline: token auth → schema → OPA → tool dispatch → sanitize → audit
-- Endpoints: `POST /v1/tools/call`, `GET /v1/tools/list`, `GET /v1/hitl/{id}/status`, `POST /v1/hitl/{id}/approve|deny`, `POST /v1/agents/{id}/kill`, `GET /v1/fleet/status`, `GET /v1/audit/export`, `GET /v1/health`
-- Kill switch: revokes all sessions for an agent; per-session failure tracking with `CRITICAL` logging
-- Bearer token authentication on all endpoints
+### Added — Public API
+- Root `kitelogik` package exports: `AgentSession`, `SessionResult`, `PolicyGate`, `HierarchicalEvaluator`, `SessionContext`, `PolicyDecision`, `ResolutionStep`, `RiskTier`, `SanitizedResponse`, `ToolCallInput`, `OPAClient`, `OPAConnectionError`, `RegorusClient`, `HITLQueue`, `CredentialBroker`, `AuditStore`, `MemoryStore`, `TrustTier`, `compile_yaml`, `compile_yaml_string`, `Edition`, `edition`, `load_plugin`, `governed`, `GovernedToolbox`, `GovernanceError`, `__version__`.
+- `kitelogik.tether` additionally exposes: `GovernanceEvent`, `PolicyInput`, `PolicyEvaluator`, `result_to_decision`, `sanitize_tool_output`, `sanitize_tool_schema`.
+- `py.typed` marker shipped — PEP 561 type-checker friendly.
 
-#### Agent Session and Orchestration
-- `AgentSession` — direct mode (in-process `PolicyGate`) and gateway mode (HTTP)
-- Session token issued at start, revoked in `finally` block
-- Sandbox lifecycle managed alongside session lifecycle
-- `Orchestrator` class for multi-agent coordination with scope-narrowed child tokens
-- 13 pre-built demo scenarios covering `ALLOW`, `BLOCK`, `HITL`, delegation, injection
-
-#### Adapters
-- `@governed` decorator and `GovernedToolbox` for inline policy enforcement
-- `OpenAIAdapter`: wraps `tool_calls` array; governance before execution
-- `LangChainAdapter`: `as_governed_tool()` and `govern_toolkit()` for `BaseTool` wrapping
-
-#### Dashboard
-- Real-time WebSocket live feed of gate decisions
-- HITL queue panel with approve/deny controls
-- Memory viewer with trust tiers per session
-- Fleet view of all active sessions
-
-#### Infrastructure
-- `pyproject.toml` with ruff, pytest, coverage configuration; `asyncpg` as optional `[postgres]` extra
-- `Makefile` targets: `demo`, `demo-enterprise`, `test`, `landing`
-- Docker Compose stack: `opa`, `dashboard`, `mcp-mock`; enterprise profile adds Grafana + Tempo
-- GitHub Actions CI: ruff lint, unit tests on Python 3.11 and 3.12, OPA native policy tests
-
-#### Tests
-- 352 unit tests across 23 test files
-- 36 OPA native policy tests (`opa test kitelogik/policies/ -v`)
-- 41 policy bypass adversarial tests (type coercion, path traversal, session boundary, delegation escalation)
-- 12-payload injection corpus
-- Full-stack integration tests (require Docker + OPA)
-- 79% line coverage (threshold enforced at 75%)
+### Fixed
+- Delegated child tokens now revoked when the parent session ends or raises — previously only tokens the session issued itself were cleaned up in the `finally` block.
+- `CredentialBroker.delegate()` rejects empty-scope delegation (previously silently issued a no-op token, bypassing the narrowing intent).
+- `agent_lifecycle.rego` — null `delegation_depth` no longer bypasses depth caps.
+- `rate_limiting.rego` — removed dead `_max_calls` constant.
+- `default` declarations in all Rego files now pass `opa fmt --fail`.
+- `kitelogik check` — use OPA's `--stdin-input` flag (was incorrectly `-i -`, which OPA interprets as a filename).
 
 ### Security
+- Fail-closed policy gate: OPA unreachability returns a hard block, never an accidental allow.
+- Database-level immutability on the audit log (triggers reject `UPDATE` and `DELETE`); regression tests added for trigger enforcement, reconnect-survival, and integrity-hash tamper detection.
+- All shell commands constructed from agent input rejected at policy layer — no f-string shell construction.
+- MCP supply-chain verification before any server is registered.
+- Session tokens scoped to minimum required permissions; revoked on session end (including delegated children).
 
-- Fail-closed policy gate: OPA unreachability returns hard block, never an accidental allow
-- Database-level immutability on audit log (trigger prevents `UPDATE`/`DELETE`)
-- All shell commands constructed from agent input rejected at policy layer — no f-string shell construction
-- MCP supply chain verification before any server is registered
-- Session tokens scoped to minimum required permissions; revoked on session end
+### Tests
+- 469 unit tests + 36 OPA native policy tests.
+- Added adversarial coverage: tag-char smuggling, role-confusion payloads, schema-sanitization, audit trigger enforcement, credential lifecycle edge cases.
+- Extended CrewAI and OpenAI Agents SDK adapter tests to drive the full governance flow (allow / deny / async bridging) via `sys.modules` stubs, without taking a hard dependency on either framework.
 
 [Unreleased]: https://github.com/kitelogik/kitelogik/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/kitelogik/kitelogik/releases/tag/v0.1.0

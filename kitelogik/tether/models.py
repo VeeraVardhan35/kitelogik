@@ -8,6 +8,14 @@ from pydantic import BaseModel, Field
 
 
 class RiskTier(StrEnum):
+    """Risk classification for governance events.
+
+    Tiers are ordered by severity. Policies use the tier to drive routing:
+    ``INFORMATIONAL`` / ``OPERATIONAL`` / ``TRANSACTIONAL_LOW`` are typically
+    allowed with audit; ``TRANSACTIONAL_HIGH`` often requires HITL; and
+    ``DESTRUCTIVE`` / ``SECURITY_CRITICAL`` are usually hard-denied.
+    """
+
     OPERATIONAL = "OPERATIONAL"
     INFORMATIONAL = "INFORMATIONAL"
     TRANSACTIONAL_LOW = "TRANSACTIONAL_LOW"
@@ -17,6 +25,16 @@ class RiskTier(StrEnum):
 
 
 class SessionContext(BaseModel):
+    """Per-session identity, scope, and budget envelope passed to every gate call.
+
+    Created once at session start and shared across all governance events for
+    that session. The policy gate reads every field from this model — role
+    and scopes drive authorization, ``delegation_depth`` caps child-agent
+    nesting, and the ``budget_*`` fields gate ``agent.budget`` events. Treat
+    as immutable during a session; use ``model_copy(update=...)`` when
+    attaching a delegated token.
+    """
+
     session_id: str
     user_role: str
     session_scopes: list[str]
@@ -36,6 +54,14 @@ class SessionContext(BaseModel):
 
 
 class ToolCallInput(BaseModel):
+    """A single tool invocation submitted to the policy gate for evaluation.
+
+    ``action`` is the policy-layer name (often the same as ``tool_name``, but
+    may be overridden when a function's Python name differs from the tool name
+    registered in Rego policies). ``resource_path`` is used by file/URL
+    policies — leave ``None`` for tools that do not touch a filesystem or URL.
+    """
+
     action: str
     tool_name: str
     args: dict
@@ -87,6 +113,20 @@ class ResolutionStep(BaseModel):
 
 
 class PolicyDecision(BaseModel):
+    """The outcome of a single policy evaluation.
+
+    Three flags encode the decision axis:
+
+    * ``allow=True, deny=False`` — proceed.
+    * ``allow=False, deny=True`` — hard block; the model cannot override.
+    * ``allow=False, deny=False, requires_hitl=True`` — pause for human review.
+    * ``allow=False, deny=False, requires_hitl=False`` — soft-deny fallback.
+
+    ``rule_matched`` identifies the specific Rego rule that fired and is what
+    audit logs and traces anchor on. ``resolution_trace`` is populated only by
+    ``HierarchicalEvaluator`` to record each tier's sub-decision.
+    """
+
     allow: bool
     deny: bool
     risk_tier: RiskTier
@@ -97,6 +137,14 @@ class PolicyDecision(BaseModel):
 
 
 class SanitizedResponse(BaseModel):
+    """Sanitizer output — returned by ``PolicyGate.sanitize_response()``.
+
+    ``was_modified`` is the cheap check callers use to decide whether the
+    original content needs to be replaced. ``injection_patterns_found`` lists
+    the pattern names matched during scanning so audit logs can attribute the
+    redaction to a specific rule.
+    """
+
     content: str
     was_modified: bool
     injection_patterns_found: list[str] = Field(default_factory=list)

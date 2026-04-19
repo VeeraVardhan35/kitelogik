@@ -204,11 +204,23 @@ class AgentSession:
             try:
                 result = await self._run_loop(prompt, max_iterations, on_event)
             finally:
-                # Revoke token only if this session issued it (not delegated)
-                if token and self.credential_broker:
-                    self.credential_broker.revoke(token.token_id)
-                    if on_event:
-                        on_event({"type": "credential_revoked", "token_id": token.token_id})
+                # Revoke any token tied to this session_id — covers both the
+                # locally-issued case and the delegated case (where the child
+                # token was issued by a parent via broker.delegate but is owned
+                # by *this* session for its lifetime). revoke_session is
+                # idempotent; calling it after revoke(token.token_id) is safe.
+                if self.credential_broker:
+                    if token:
+                        self.credential_broker.revoke(token.token_id)
+                    revoked_count = self.credential_broker.revoke_session(self.context.session_id)
+                    if on_event and (token or revoked_count):
+                        on_event(
+                            {
+                                "type": "credential_revoked",
+                                "session_id": self.context.session_id,
+                                "token_id": token.token_id if token else self.context.token_id,
+                            }
+                        )
 
             return result
 

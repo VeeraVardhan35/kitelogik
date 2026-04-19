@@ -36,6 +36,77 @@ def _find_policies_dir() -> Path:
     return cwd / "kitelogik" / "policies"
 
 
+# Fixed OPA image tag for the Docker fallback. Pinning (not `:latest`) keeps
+# CLI behaviour reproducible across user machines and matches what the CI
+# integration job uses.
+_OPA_DOCKER_IMAGE = "openpolicyagent/opa:latest"
+
+
+def _run_opa(
+    opa_args: list[str],
+    *,
+    policies_dir: Path | None = None,
+    stdin: str | None = None,
+    capture_output: bool = True,
+) -> subprocess.CompletedProcess:
+    """Invoke OPA, falling back to Docker when no local ``opa`` binary is found.
+
+    The README's recommended setup starts OPA via ``docker compose up -d opa``,
+    which means most users will not have a bare ``opa`` binary on their PATH.
+    Rather than fail with "install OPA", transparently re-run the same command
+    inside ``openpolicyagent/opa:latest`` if Docker is available.
+
+    Parameters
+    ----------
+    opa_args : list[str]
+            Arguments to pass to the ``opa`` binary (e.g. ``["check", ...]``).
+            Any argument that starts with the host ``policies_dir`` path is
+            remapped to ``/policies`` inside the container when using Docker.
+    policies_dir : Path or None
+            The host policies directory. When provided and Docker is used,
+            it is bind-mounted read-only at ``/policies``.
+    stdin : str or None
+            Optional stdin content (used by ``opa eval -i -``).
+    capture_output : bool
+            Forwarded to ``subprocess.run``.
+    """
+    try:
+        return subprocess.run(
+            ["opa", *opa_args],
+            input=stdin,
+            capture_output=capture_output,
+            text=True,
+        )
+    except FileNotFoundError:
+        pass  # fall through to Docker
+
+    host_policies = policies_dir.resolve() if policies_dir is not None else None
+    remapped = [
+        arg.replace(str(host_policies), "/policies") if host_policies and arg else arg
+        for arg in opa_args
+    ]
+    docker_cmd = ["docker", "run", "--rm"]
+    if stdin is not None:
+        docker_cmd.append("-i")
+    if host_policies is not None:
+        docker_cmd.extend(["-v", f"{host_policies}:/policies:ro"])
+    docker_cmd.extend([_OPA_DOCKER_IMAGE, *remapped])
+
+    try:
+        return subprocess.run(
+            docker_cmd,
+            input=stdin,
+            capture_output=capture_output,
+            text=True,
+        )
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            "Neither 'opa' nor 'docker' found on PATH. Install one of:\n"
+            "  • OPA binary: https://www.openpolicyagent.org/docs/latest/#running-opa\n"
+            "  • Docker Desktop: https://www.docker.com/products/docker-desktop/"
+        ) from e
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Scaffold a new governed agent project."""
     from kitelogik._init_templates import (
@@ -99,17 +170,12 @@ def cmd_validate(args: argparse.Namespace) -> int:
     print(f"Validating {len(policy_files)} policy files in {policies_dir}...")
 
     try:
-        result = subprocess.run(
-            ["opa", "check", *[str(f) for f in policy_files]],
-            capture_output=True,
-            text=True,
+        result = _run_opa(
+            ["check", *[str(f) for f in policy_files]],
+            policies_dir=policies_dir,
         )
-    except FileNotFoundError:
-        print(
-            "Error: 'opa' command not found. Install OPA: "
-            "https://www.openpolicyagent.org/docs/latest/#running-opa",
-            file=sys.stderr,
-        )
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
     if result.returncode == 0:
@@ -129,16 +195,14 @@ def cmd_test(args: argparse.Namespace) -> int:
 
     verbose_flag = ["-v"] if args.verbose else []
     try:
-        result = subprocess.run(
-            ["opa", "test", str(policies_dir), *verbose_flag],
+        # Stream output directly for `opa test` so the user sees progress.
+        result = _run_opa(
+            ["test", str(policies_dir), *verbose_flag],
+            policies_dir=policies_dir,
             capture_output=False,
         )
-    except FileNotFoundError:
-        print(
-            "Error: 'opa' command not found. Install OPA: "
-            "https://www.openpolicyagent.org/docs/latest/#running-opa",
-            file=sys.stderr,
-        )
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
     return result.returncode
@@ -158,18 +222,16 @@ def cmd_check(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        result = subprocess.run(
-            ["opa", "eval", "-d", str(policies_dir), "-i", "-", "data.kitelogik.main"],
-            input=json.dumps(input_data),
-            capture_output=True,
-            text=True,
+        # OPA's stdin-input flag is -I (uppercase); lowercase -i expects a
+        # filename. The earlier `-i -` call path silently broke because OPA
+        # resolved '-' as a missing file.
+        result = _run_opa(
+            ["eval", "-d", str(policies_dir), "--stdin-input", "data.kitelogik.main"],
+            policies_dir=policies_dir,
+            stdin=json.dumps(input_data),
         )
-    except FileNotFoundError:
-        print(
-            "Error: 'opa' command not found. Install OPA: "
-            "https://www.openpolicyagent.org/docs/latest/#running-opa",
-            file=sys.stderr,
-        )
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
     if result.returncode != 0:
@@ -392,8 +454,22 @@ def main(argv: list[str] | None = None) -> int:
     p_test.set_defaults(func=cmd_test)
 
     # check
-    p_check = subparsers.add_parser("check", help="Dry-run a governance event against policies")
-    p_check.add_argument("input", help="JSON input for the governance event")
+    p_check = subparsers.add_parser(
+        "check",
+        help="Dry-run a governance event against policies",
+        description=(
+            "Dry-run a governance event against the loaded policies.\n"
+            "Pass the event as a JSON string. Example:\n\n"
+            '  kitelogik check \'{"action": "read_file", "resource_path": "/etc/passwd", '
+            '"context": {"session_id": "s1", "user_role": "support", '
+            '"session_scopes": ["read_customer"]}}\''
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_check.add_argument(
+        "input",
+        help='JSON event payload, e.g. \'{"action": "read_customer_record", ...}\'',
+    )
     p_check.add_argument("--path", help="Path to policies directory")
     p_check.set_defaults(func=cmd_check)
 

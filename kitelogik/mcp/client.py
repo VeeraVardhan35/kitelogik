@@ -58,6 +58,16 @@ class MCPClient:
     whose tool list hash doesn't match the registry is added to the blocklist
     and will raise ``MCPSupplyChainError`` on attempted use.
 
+    Tool **output** returned by ``call_tool()`` is already run through
+    ``sanitize_tool_output`` before being handed back to the agent. Tool
+    **schemas** (``name`` / ``description`` metadata fetched via
+    ``tools/list``) are **not** auto-sanitised here because this client
+    only uses them for manifest hashing. If an integration separately
+    surfaces MCP schemas to an LLM (e.g. to register them as agent tools),
+    the caller must pass each schema through ``sanitize_tool_schema``
+    first — a malicious server can inject instructions into a tool's
+    ``description`` and bypass the output-only defence.
+
     Parameters
     ----------
     registry : ServerRegistry

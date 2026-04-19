@@ -171,6 +171,61 @@ async def test_end_turn_without_tool_use_returns_response(
     mock_gate.evaluate_tool_call.assert_not_called()
 
 
+async def test_delegated_child_token_is_revoked_on_session_end(
+    mock_gate: PolicyGate, ctx: SessionContext
+):
+    """A pre-existing (delegated) token tied to the session must be revoked
+    when the session ends — not only tokens the session issued itself.
+
+    Regression test for a leak in AgentSession.run_async where the finally
+    block only revoked tokens issued inside the call, letting delegated
+    child tokens outlive the session and persist in the broker.
+    """
+    from kitelogik.anchor.credentials import CredentialBroker
+
+    broker = CredentialBroker()
+
+    # Simulate a parent having delegated scopes down to this session.
+    parent = broker.issue("parent_sess", scopes=["read_customer"])
+    child = broker.delegate(parent.token_id, ["read_customer"], session_id=ctx.session_id)
+    ctx = ctx.model_copy(update={"token_id": child.token_id, "delegation_depth": 1})
+    assert broker.validate(child.token_id) is not None
+
+    mock_llm = _make_mock_llm(_make_llm_response("end_turn", text="done"))
+    session = AgentSession(
+        gate=mock_gate, context=ctx, llm_client=mock_llm, credential_broker=broker
+    )
+    await session.run_async("ping")
+
+    assert broker.validate(child.token_id) is None, (
+        "Delegated child token survived the session — revoke_session was not called"
+    )
+
+
+async def test_delegated_child_token_is_revoked_on_session_exception(
+    mock_gate: PolicyGate, ctx: SessionContext
+):
+    """Even if the session's run loop raises, the delegated child token must
+    still be revoked — the finally block is the only guarantee."""
+    from kitelogik.anchor.credentials import CredentialBroker
+
+    broker = CredentialBroker()
+    parent = broker.issue("parent_sess_x", scopes=["read_customer"])
+    child = broker.delegate(parent.token_id, ["read_customer"], session_id=ctx.session_id)
+    ctx = ctx.model_copy(update={"token_id": child.token_id, "delegation_depth": 1})
+
+    mock_llm = MagicMock()
+    mock_llm.create_message = AsyncMock(side_effect=RuntimeError("boom"))
+    session = AgentSession(
+        gate=mock_gate, context=ctx, llm_client=mock_llm, credential_broker=broker
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await session.run_async("ping")
+
+    assert broker.validate(child.token_id) is None
+
+
 async def test_sanitize_response_called_on_allowed_tool(mock_gate: PolicyGate, ctx: SessionContext):
     mock_gate.evaluate_tool_call.return_value = _make_decision(allow=True)
 

@@ -86,42 +86,41 @@ Governance Event → Credential Check → OPA Evaluation → ALLOW / DENY
 
 ## Getting Started
 
+> **Prerequisite:** Kite Logik evaluates every governance event through an OPA policy engine over HTTP. You need OPA reachable at `http://localhost:8181` before any of the examples below will succeed — without it, `PolicyGate` fails closed and every call raises `GovernanceError`. The easiest path is Docker; the scaffold below writes a ready-to-use `docker-compose.yml`.
+
 **New project** — scaffold a governed agent in seconds:
 
 ```bash
 pip install kitelogik
-docker compose up -d opa          # start OPA policy engine
-kitelogik init my-agent
+kitelogik init my-agent           # creates agent.py, policies/, docker-compose.yml
 cd my-agent
+docker compose up -d opa          # start OPA policy engine on :8181
 python agent.py                   # see ALLOW / BLOCK decisions immediately
 ```
 
 This creates a `policies/policy.yaml` with starter rules, compiles it to Rego, and generates an `agent.py` that runs governance demos. Set `ANTHROPIC_API_KEY` to enable an interactive Claude agent loop.
 
-**Existing project** — add governance to any tool function:
+**Existing project** — add governance to any tool function. You'll need OPA running at `http://localhost:8181` — either run it via Docker directly:
 
 ```bash
 pip install kitelogik
-docker compose up -d opa
+docker run -d --name opa -p 8181:8181 \
+    -v "$(pwd)/policies:/policies:ro" \
+    openpolicyagent/opa:latest run --server --addr :8181 /policies
 ```
+
+…or point at an existing OPA server by passing `base_url=` to `OPAClient(...)`.
 
 ```python
 from kitelogik import governed, PolicyGate, OPAClient, SessionContext
 
-gate = PolicyGate(opa_client=OPAClient())
+gate = PolicyGate(opa_client=OPAClient())  # defaults to http://localhost:8181
 ctx  = SessionContext(session_id="s1", user_role="support",
                       session_scopes=["read_customer", "approve_refund"])
 
 @governed(gate=gate, context=ctx)
 async def approve_refund(customer_id: str, amount: float) -> str:
     return payment_api.refund(customer_id, amount)
-```
-
-**With OPA server** — for team-wide policy management:
-
-```bash
-pip install kitelogik
-opa run --server policies/        # or: docker compose up -d opa
 ```
 
 ## Integrate in 3 Lines

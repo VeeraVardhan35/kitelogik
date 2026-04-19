@@ -100,6 +100,15 @@ class governed:
 
     Works with both sync and async functions.
 
+    .. important::
+            Unlike framework adapters (which convert denials into a structured
+            ``[BLOCKED]`` string so the agent loop can continue), ``@governed``
+            raises ``GovernanceError`` on any non-allow decision — hard deny,
+            soft deny, or ``requires_hitl=True``. Callers that want the agent
+            to recover gracefully must catch ``GovernanceError`` themselves and
+            translate it into a tool-result the model can observe. Inspect
+            ``exc.decision`` to distinguish hard deny from HITL.
+
     Parameters
     ----------
     gate : PolicyGate
@@ -113,6 +122,12 @@ class governed:
     sanitize : bool, default True
             Whether to scan string return values for prompt injection payloads.
             Set False only if you are sanitizing elsewhere.
+
+    Raises
+    ------
+    GovernanceError
+            If the policy gate returns any decision other than ``allow=True``.
+            The underlying decision is attached as ``exc.decision``.
 
     Example
     -------

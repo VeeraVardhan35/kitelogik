@@ -38,13 +38,17 @@ installed, a clear ImportError is raised.
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from kitelogik.governed import GovernanceError, _check_decision, _maybe_sanitize
+from kitelogik.governed import (
+    GovernanceError,
+    _check_decision,
+    _maybe_sanitize,
+    _run_coroutine_sync,
+)
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.models import SessionContext, ToolCallInput
 
@@ -117,7 +121,7 @@ def as_governed_tool(
         return result if isinstance(result, str) else str(result)
 
     def _governed_sync(**kwargs: Any) -> str:
-        return asyncio.get_event_loop().run_until_complete(_governed_async(**kwargs))
+        return _run_coroutine_sync(_governed_async(**kwargs))
 
     # Build a StructuredTool — supports both sync and async invocation
     return StructuredTool.from_function(
@@ -210,7 +214,7 @@ def _wrap_existing_tool(
         return result if isinstance(result, str) else str(result)
 
     def _governed_sync(**kwargs: Any) -> str:
-        return asyncio.get_event_loop().run_until_complete(_governed_async(**kwargs))
+        return _run_coroutine_sync(_governed_async(**kwargs))
 
     return StructuredTool.from_function(
         func=_governed_sync,

@@ -98,6 +98,12 @@ class CredentialBroker:
         if parent is None:
             raise ValueError(f"Parent token '{parent_token_id}' is invalid or expired")
 
+        if not requested_scopes:
+            raise ValueError(
+                "Delegated child token must have at least one scope — "
+                "empty-scope delegation is nonsense and bypasses narrowing intent"
+            )
+
         forbidden = set(requested_scopes) - set(parent.scopes)
         if forbidden:
             raise ValueError(

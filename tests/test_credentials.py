@@ -204,3 +204,40 @@ def test_delegate_depth_increments(broker):
     c2 = broker.delegate(c1.token_id, ["read_customer"], session_id="sess_d2")
     assert c1.delegation_depth == 1
     assert c2.delegation_depth == 2
+
+
+def test_delegate_rejects_empty_scopes(broker):
+    """A child token must carry at least one scope — empty-scope delegation
+    is nonsense and sidesteps the narrowing intent of delegation."""
+    parent = broker.issue("sess_empty_scope", scopes=["read_customer"])
+    with pytest.raises(ValueError, match="at least one scope"):
+        broker.delegate(parent.token_id, [], session_id="sess_empty_child")
+
+
+# ── TTL expiry boundary ───────────────────────────────────────────────────
+
+
+def test_ttl_expiry_at_boundary_rejects_validate(broker, monkeypatch):
+    """A token issued with ttl_seconds=5 must be rejected by validate() once
+    wall-clock time advances past expires_at, even while still in the cache."""
+    from datetime import UTC, datetime, timedelta
+
+    import kitelogik.anchor.models as models_mod
+
+    token = broker.issue("sess_ttl", scopes=["read_customer"], ttl_seconds=5)
+    assert broker.validate(token.token_id) is not None
+
+    # Advance the clock 10 seconds past issuance.
+    frozen_future = token.expires_at + timedelta(seconds=5)
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_future if tz is None else frozen_future.astimezone(tz)
+
+    monkeypatch.setattr(models_mod, "datetime", _FrozenDatetime)
+    monkeypatch.setattr(models_mod, "UTC", UTC)
+
+    assert broker.validate(token.token_id) is None, (
+        "validate() must return None for a token whose expires_at has passed"
+    )
