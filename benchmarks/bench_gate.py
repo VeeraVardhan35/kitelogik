@@ -174,8 +174,7 @@ async def main(runs: int, concurrency: int, opa_url: str, warmup: int) -> None:
     print(f"\n{B}{'═' * W}{RS}")
     print(f"{B}  Kite Logik — Policy Gate Benchmark{RS}")
     print(
-        f"  {D}OPA: {opa_url}  ·  runs={runs}  ·  concurrency={concurrency}  "
-        f"·  warmup={warmup}{RS}"
+        f"  {D}OPA: {opa_url}  ·  runs={runs}  ·  concurrency={concurrency}  ·  warmup={warmup}{RS}"
     )
     print(f"{B}{'═' * W}{RS}\n")
 
@@ -209,8 +208,7 @@ async def main(runs: int, concurrency: int, opa_url: str, warmup: int) -> None:
         mx = max(samples)
         all_samples.extend(samples)
         print(
-            f"  {name:<{col_name}}  {_fmt_ms(p50)}  {_fmt_ms(p95)}  "
-            f"{_fmt_ms(p99)}  {_fmt_ms(mx)}"
+            f"  {name:<{col_name}}  {_fmt_ms(p50)}  {_fmt_ms(p95)}  {_fmt_ms(p99)}  {_fmt_ms(mx)}"
         )
 
     p50 = statistics.median(all_samples)
@@ -219,8 +217,7 @@ async def main(runs: int, concurrency: int, opa_url: str, warmup: int) -> None:
     mx = max(all_samples)
     print(f"  {D}{_bar()}{RS}")
     print(
-        f"  {'overall':<{col_name}}  {_fmt_ms(p50)}  {_fmt_ms(p95)}  "
-        f"{_fmt_ms(p99)}  {_fmt_ms(mx)}"
+        f"  {'overall':<{col_name}}  {_fmt_ms(p50)}  {_fmt_ms(p95)}  {_fmt_ms(p99)}  {_fmt_ms(mx)}"
     )
     print(f"\n  {D}total evaluations: {len(all_samples):,}  ·  OPA URL: {opa_url}{RS}")
     print(f"{B}{'═' * W}{RS}\n")
