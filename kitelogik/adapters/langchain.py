@@ -121,7 +121,8 @@ def as_governed_tool(
         return result if isinstance(result, str) else str(result)
 
     def _governed_sync(**kwargs: Any) -> str:
-        return _run_coroutine_sync(_governed_async(**kwargs))
+        result: str = _run_coroutine_sync(_governed_async(**kwargs))
+        return result
 
     # Build a StructuredTool — supports both sync and async invocation
     return StructuredTool.from_function(
@@ -214,7 +215,8 @@ def _wrap_existing_tool(
         return result if isinstance(result, str) else str(result)
 
     def _governed_sync(**kwargs: Any) -> str:
-        return _run_coroutine_sync(_governed_async(**kwargs))
+        result: str = _run_coroutine_sync(_governed_async(**kwargs))
+        return result
 
     return StructuredTool.from_function(
         func=_governed_sync,

@@ -20,11 +20,11 @@ import asyncio
 import os
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
 
 from kitelogik.agents._demo_tools import TOOL_SCHEMAS, execute_tool
+from kitelogik.agents.llm import LLMResponse, ToolCall
 from kitelogik.agents.session import AgentSession
 from kitelogik.anchor.queue import HITLQueue
 from kitelogik.audit.store import AuditStore
@@ -59,6 +59,41 @@ class _Response:
     content: list[Any]
 
 
+class _StubLLMClient:
+    """Test-only LLMClient that replays a pre-canned response queue.
+
+    Implements the ``LLMClient`` protocol so it can be injected into
+    ``AgentSession`` via ``llm_client=``. Avoids hitting the real Anthropic
+    API and avoids the ``ANTHROPIC_API_KEY`` init check in
+    ``AnthropicLLMClient``.
+    """
+
+    def __init__(self, responses: list[_Response]) -> None:
+        self._queue = list(responses)
+
+    async def create_message(self, **_: Any) -> LLMResponse:
+        raw = self._queue.pop(0)
+        text_content: str | None = None
+        tool_calls: list[ToolCall] = []
+        for block in raw.content:
+            if block.type == "text":
+                text_content = block.text
+            elif block.type == "tool_use":
+                tool_calls.append(ToolCall(id=block.id, name=block.name, input=dict(block.input)))
+        return LLMResponse(
+            stop_reason=raw.stop_reason,
+            text_content=text_content,
+            tool_calls=tool_calls,
+            raw_content=raw.content,
+        )
+
+    def format_tool_result(self, tool_call_id: str, content: str) -> dict:
+        return {"type": "tool_result", "tool_use_id": tool_call_id, "content": content}
+
+    def format_assistant_message(self, raw_content: Any) -> dict:
+        return {"role": "assistant", "content": raw_content}
+
+
 def _tool_use(name: str, args: dict, block_id: str = "tu_001") -> _Response:
     return _Response(
         stop_reason="tool_use",
@@ -89,12 +124,10 @@ def _make_session(
         context=context,
         hitl_queue=hitl_queue,
         audit_store=audit_store,
+        llm_client=_StubLLMClient(responses),
         tools=list(TOOL_SCHEMAS),
         tool_handler=execute_tool,
     )
-    mock_client = AsyncMock()
-    mock_client.messages.create = AsyncMock(side_effect=responses)
-    session._client = mock_client
     return session
 
 
@@ -515,12 +548,10 @@ async def test_injection_in_tool_response_is_redacted(
         gate=real_gate,
         context=context,
         audit_store=audit_store,
+        llm_client=_StubLLMClient(responses),
         tools=list(TOOL_SCHEMAS),
         tool_handler=malicious_handler,
     )
-    mock_client = AsyncMock()
-    mock_client.messages.create = AsyncMock(side_effect=responses)
-    session._client = mock_client
     result = await session.run_async("Look up customer cust_001", on_event=capture)
 
     # Tool was allowed (not blocked) — policy has no issue with the action

@@ -51,7 +51,7 @@ class TestExamplePolicyEvaluation:
 
             evaluator = RegorusClient(policy_dir=init_project / "policies")
         except ImportError:
-            pytest.skip("regoruspy not installed")
+            pytest.skip("regorus Python bindings not installed — see microsoft/regorus")
         gate = PolicyGate(opa_client=evaluator)
         context = SessionContext(
             session_id="test-001",

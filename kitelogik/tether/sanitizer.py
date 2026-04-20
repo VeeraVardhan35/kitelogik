@@ -11,6 +11,12 @@ _UNICODE_WHITESPACE = re.compile(
     "[\u00a0\u200b\u200c\u200d\u2028\u2029\ufeff\u2060\u180e\u202f\u205f\u3000]"
 )
 
+# Bidi / RTL-override controls (U+202A..U+202E and U+2066..U+2069). These
+# reorder text visually without changing codepoint order, letting an attacker
+# display "safe" text while smuggling injection payloads in the logical
+# stream. They have no legitimate use in structured tool output; strip them.
+_BIDI_CONTROLS = re.compile("[\u202a-\u202e\u2066-\u2069]")
+
 # Unicode tag characters (U+E0000–U+E007F) are invisible and can smuggle
 # instructions past both humans and regex scanners. The ASCII-subset range
 # U+E0020–U+E007E mirrors printable ASCII (space through tilde) as invisible
@@ -23,6 +29,78 @@ _TAG_ASCII_MIRROR_END = 0xE007E
 _UNICODE_TAG_NONASCII = re.compile(
     "[\U000e0000-\U000e001f\U000e007f]",
 )
+
+# Hand-curated homoglyph fold — Cyrillic / Greek / Latin-extended lookalikes
+# that NFKC does not normalise because they belong to distinct scripts. Keeps
+# the table small (common attack chars only); covers "ignоre previous
+# instructions" style bypasses where a single Latin letter is substituted
+# with a visually identical Cyrillic codepoint. Values are ASCII.
+_CONFUSABLES: dict[str, str] = {
+    # Cyrillic lowercase → Latin lowercase
+    "а": "a",
+    "в": "B",
+    "с": "c",
+    "е": "e",
+    "һ": "h",
+    "і": "i",
+    "ј": "j",
+    "ӏ": "l",
+    "м": "M",
+    "о": "o",
+    "р": "p",
+    "ԛ": "q",
+    "ѕ": "s",
+    "т": "T",
+    "у": "y",
+    "х": "x",
+    # Cyrillic uppercase → Latin
+    "А": "A",
+    "В": "B",
+    "С": "C",
+    "Е": "E",
+    "Н": "H",
+    "І": "I",
+    "Ј": "J",
+    "К": "K",
+    "М": "M",
+    "О": "O",
+    "Р": "P",
+    "Ѕ": "S",
+    "Т": "T",
+    "У": "Y",
+    "Х": "X",
+    # Greek → Latin (visually identical in most fonts)
+    "α": "a",
+    "ο": "o",
+    "ρ": "p",
+    "ν": "v",
+    "τ": "T",
+    "ι": "i",
+    "Α": "A",
+    "Β": "B",
+    "Ε": "E",
+    "Η": "H",
+    "Ι": "I",
+    "Κ": "K",
+    "Μ": "M",
+    "Ν": "N",
+    "Ο": "O",
+    "Ρ": "P",
+    "Τ": "T",
+    "Χ": "X",
+    "Υ": "Y",
+    "Ζ": "Z",
+}
+# Compiled character class for fast dispatch; falls back to table lookup
+# only when a confusable is actually present in the input.
+_CONFUSABLE_CHARS = "".join(_CONFUSABLES.keys())
+
+
+def _fold_confusables(text: str) -> str:
+    """Replace Cyrillic/Greek lookalikes with their Latin ASCII equivalents."""
+    if not any(ch in _CONFUSABLES for ch in text):
+        return text
+    return "".join(_CONFUSABLES.get(ch, ch) for ch in text)
 
 
 def _demirror_unicode_tags(text: str) -> str:
@@ -49,8 +127,14 @@ def _normalize_for_scan(text: str) -> str:
     zero-width or tag characters.
     """
     # NFKC normalisation maps full-width and other confusable characters
-    # to their standard equivalents (e.g. fullwidth 'A' → 'A').
+    # to their standard equivalents (e.g. fullwidth 'A' → 'A'). Math
+    # alphanumeric, script, and double-struck ranges are all NFKC-folded.
     text = unicodedata.normalize("NFKC", text)
+    # Strip bidi / RTL override controls (no legitimate use in tool output).
+    text = _BIDI_CONTROLS.sub("", text)
+    # Fold Cyrillic / Greek lookalikes to their Latin ASCII twins so payloads
+    # like "ignоre previous instructions" (Cyrillic 'о') match the regex.
+    text = _fold_confusables(text)
     # Demirror tag chars that mirror printable ASCII (U+E0020..U+E007E).
     text = _demirror_unicode_tags(text)
     # Strip remaining (non-mirrored) tag codepoints.
@@ -106,6 +190,24 @@ _INJECTION_PATTERNS: list[tuple[str, str]] = [
         r"if\s+you\s+(?:were|are)\s+(?:an?\s+)?(?:system\s+administrator|root|developer|human|admin)",
         "role_confusion_if_you_were",
     ),
+    # Markdown / HTML URI injection — embeds executable schemes in link or
+    # image syntax that an agent rendering the response might follow, or
+    # that a downstream UI might render as a live link.
+    (r"\]\(\s*javascript\s*:", "markdown_javascript_uri"),
+    (r"\]\(\s*data\s*:\s*text/html", "markdown_data_html_uri"),
+    (r"<\s*/?\s*(?:system|sys|assistant|user|developer)\s*>", "fake_role_tag"),
+    # Multilingual variants of "ignore previous instructions". Narrow
+    # wording on purpose — kept to single-phrase forms of the top attack,
+    # so false positives stay low in multilingual business data.
+    (r"ignora\s+(?:las\s+)?instrucciones\s+(?:anteriores|previas)", "ignore_previous_es"),
+    (
+        r"ignorez\s+(?:les\s+)?instructions\s+(?:pr[eé]c[eé]dentes|ant[eé]rieures)",
+        "ignore_previous_fr",
+    ),
+    (r"ignorieren?\s+sie\s+(?:die\s+)?(?:vorherigen|vorigen)\s+anweisungen", "ignore_previous_de"),
+    (r"忽略(?:之前|以前|先前)(?:的)?指[令示]", "ignore_previous_zh"),
+    (r"تجاهل\s+(?:جميع\s+)?التعليمات\s+السابقة", "ignore_previous_ar"),
+    (r"पिछले\s+निर्देशों\s+को\s+अनदेखा", "ignore_previous_hi"),
 ]
 
 _COMPILED: list[tuple[re.Pattern[str], str]] = [

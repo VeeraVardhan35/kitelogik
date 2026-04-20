@@ -6,9 +6,20 @@ without requiring an external OPA server. Ideal for development, testing,
 and lightweight deployments where running OPA as a separate service is
 unnecessary overhead.
 
-Requires the optional ``regoruspy`` package::
+Requires Microsoft's ``regorus`` Python bindings — not yet published to PyPI.
+Install by building from source (requires a Rust toolchain + ``maturin``)::
 
-    pip install kitelogik[regorus]
+    # 1. Install Rust: https://rustup.rs
+    # 2. Clone and build:
+    git clone https://github.com/microsoft/regorus.git
+    cd regorus
+    cargo xtask build-python        # produces wheels under bindings/python/dist
+    pip install bindings/python/dist/regorus-*.whl
+
+Upstream: https://github.com/microsoft/regorus/tree/main/bindings/python
+
+``regorus`` is still labelled experimental by Microsoft. For production use,
+prefer ``OPAClient`` against an OPA sidecar.
 """
 
 from __future__ import annotations
@@ -32,8 +43,12 @@ def _require_regorus():  # type: ignore[no-untyped-def]
         return regorus
     except ImportError:
         raise ImportError(
-            "regoruspy is required for in-process policy evaluation. "
-            "Install it with: pip install kitelogik[regorus]"
+            "Microsoft's `regorus` Python bindings are required for in-process "
+            "policy evaluation. They are not yet on PyPI — build from source:\n"
+            "  git clone https://github.com/microsoft/regorus.git\n"
+            "  cd regorus && cargo xtask build-python\n"
+            "  pip install bindings/python/dist/regorus-*.whl\n"
+            "See: https://github.com/microsoft/regorus/tree/main/bindings/python"
         ) from None
 
 

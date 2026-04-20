@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the RegorusClient in-process Rego evaluator.
 
-These tests mock the regorus engine to avoid requiring regoruspy as a
-test dependency. Integration tests with real policy evaluation should
-be marked with @pytest.mark.integration.
+These tests mock the regorus engine to avoid requiring Microsoft's
+regorus Python bindings as a test dependency (they're not on PyPI;
+see kitelogik/tether/regorus_client.py for how to install). Integration
+tests with real policy evaluation should be marked with
+@pytest.mark.integration.
 """
 
 from __future__ import annotations
@@ -91,7 +93,7 @@ class TestResultToDecision:
 
 @pytest.fixture
 def mock_regorus_module():
-    """Mock the regorus module so tests don't require regoruspy installed."""
+    """Mock the regorus module so tests don't require regorus installed."""
     mock_engine_cls = MagicMock()
     mock_engine = MagicMock()
     mock_engine_cls.return_value = mock_engine
@@ -148,11 +150,11 @@ class TestRegorusClient:
             with pytest.raises(FileNotFoundError, match="No .rego files"):
                 RegorusClient(policy_dir=tmp_path)
 
-    def test_init_raises_without_regoruspy(self, mock_policy_dir):
+    def test_init_raises_without_regorus(self, mock_policy_dir):
         from kitelogik.tether.regorus_client import _require_regorus
 
         with patch.dict("sys.modules", {"regorus": None}):
-            with pytest.raises(ImportError, match="regoruspy is required"):
+            with pytest.raises(ImportError, match="regorus.*Python bindings"):
                 _require_regorus()
 
     async def test_health_always_true(self, mock_regorus_module, mock_policy_dir):

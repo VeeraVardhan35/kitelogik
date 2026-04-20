@@ -1,12 +1,12 @@
 # Kite Logik
 
 [![CI](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml/badge.svg)](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-454%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
+[![Tests](https://img.shields.io/badge/tests-484%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org)
 [![PyPI](https://img.shields.io/pypi/v/kitelogik.svg)](https://pypi.org/project/kitelogik/)
 
-**The governance control plane for AI agents.** Kite Logik governs what your agents can do, what they can spawn, what they can access, and what resources they can consume — enforced at the infrastructure level, not the prompt level.
+**Governance middleware for Python AI agents.** Kite Logik governs what your agents can do, what they can spawn, what they can access, and what resources they can consume — enforced at the infrastructure level, not the prompt level.
 
 Other tools test prompts. Other tools validate LLM outputs. Kite Logik governs the **agent itself.**
 
@@ -19,10 +19,10 @@ Kite Logik is a lock.
 
 Prompt-level guardrails rely on the model cooperating. Kite Logik doesn't.
 
-- **Infrastructure enforcement** — Rules are evaluated by OPA, enforced by the sandbox and credential broker. The model cannot override a deny.
+- **Infrastructure enforcement** — Rules are evaluated by OPA and enforced at the policy gate. The model cannot override a deny.
 - **Agent-level governance** — Not just tool calls. Agent spawn, delegation, plans, resource budgets, and data access are all policy-controlled.
 - **OPA/Rego policies** — The same policy language security teams already use for Kubernetes. Deterministic, testable, version-controlled.
-- **Zero-trust sessions** — Every agent gets a scoped, short-lived credential. Deny-by-default networking. Least privilege by default.
+- **Zero-trust sessions** — Every agent gets a scoped, short-lived credential. Least privilege by default.
 - **Immutable audit trail** — Every governance decision is logged, timestamped, and integrity-hashed. SQL triggers prevent tampering.
 
 ## What Kite Logik Governs
@@ -293,7 +293,7 @@ kitelogik/
   observability/    OpenTelemetry tracing
   mcp/              MCP client with supply chain verification
   policies/         OPA/Rego rules, YAML compiler, starter library, examples
-tests/              42 test files: unit, integration, adversarial, fuzz, benchmark
+tests/              484 tests across unit, integration, adversarial, fuzz, benchmark suites
 ```
 
 ## OSS vs Enterprise
@@ -354,7 +354,7 @@ For enterprise licensing: [licensing@kitelogik.com](mailto:licensing@kitelogik.c
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 docker compose up -d opa    # start OPA policy engine
 
-make test           # 454 tests
+make test           # 484 tests
 make lint           # ruff check + format
 
 # Policy management
@@ -362,8 +362,10 @@ kitelogik compile kitelogik/policies/examples/example_rules.yaml   # YAML → Re
 kitelogik validate                                        # check Rego syntax
 kitelogik compliance                                      # OWASP ASI audit
 
-# Benchmark gate latency (requires OPA running)
-python dev/benchmark.py
+# Benchmarks — measured latency on the agent's critical path
+docker compose up -d opa
+python benchmarks/bench_gate.py             # policy gate: p50 ~3ms, p95 ~8ms
+python benchmarks/bench_memory_session.py   # memory + credential broker (no OPA)
 ```
 
 ## Requirements
@@ -380,4 +382,4 @@ python dev/benchmark.py
 
 ---
 
-**Kite Logik** — The governance control plane for AI agents.
+**Kite Logik** — Governance middleware for Python AI agents.

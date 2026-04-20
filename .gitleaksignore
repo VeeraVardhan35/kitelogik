@@ -1,0 +1,3 @@
+# False-positive — CHANGELOG discusses "parent/child" token delegation
+# flagged by gitleaks' generic-api-key entropy heuristic.
+39eaef67f58f05e52be70c245f823ed76efce4a0:CHANGELOG.md:generic-api-key:40

@@ -85,18 +85,9 @@ jobs:
     # Weekly cron + manual dispatch only — not on PRs. Deliberate: the Docker+OPA
     # spin-up slows every PR, and the unit + OPA-test jobs already cover the
     # policy surface. Run manually (Actions → Run workflow) before a release to
-    # catch any integration-only drift.
+    # catch any integration-only drift. The integration conftest manages its
+    # own OPA container via `docker run`, so no `services:` block is needed.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    services:
-      opa:
-        image: openpolicyagent/opa:latest
-        ports:
-          - 8181:8181
-        options: >-
-          --health-cmd "wget -q -O - http://localhost:8181/health || exit 1"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -104,17 +95,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: pip install pytest-cov
-      - name: Load policies into OPA
-        run: >
-          curl -X PUT http://localhost:8181/v1/policies/kitelogik
-          --data-binary @<(cat kitelogik/policies/*.rego)
       - name: Run integration tests
-        run: >
-          pytest -q -m "integration"
-          --tb=short
-        env:
-          OPA_BASE_URL: http://localhost:8181
+        run: pytest -q -m "integration" --tb=short
 
   fuzz:
     name: Fuzz tests (hypothesis)
@@ -143,6 +125,17 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - uses: pypa/gh-action-pip-audit@v1.1.0
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for historical secret detection
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   scorecard:
     name: OpenSSF Scorecard

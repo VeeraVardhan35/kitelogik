@@ -27,7 +27,7 @@ and are not part of OSS.
 - Five risk tiers: `INFORMATIONAL` → `OPERATIONAL` → `TRANSACTIONAL_HIGH` → `DESTRUCTIVE` → `SECURITY_CRITICAL`.
 - `PolicyGate` — scope-based + role-based evaluation on every tool call, schema validation before OPA, per-stage OpenTelemetry spans, `rule_matched` on every decision.
 - `HierarchicalEvaluator` — 2-tier policy hierarchy (global + project) with deny-overrides semantics and resolution traces.
-- `RegorusClient` — in-process Rego evaluator via the regorus (Rust) engine. Experimental, opt-in via the `[regorus]` extra.
+- `RegorusClient` — in-process Rego evaluator via Microsoft's regorus (Rust) engine. Experimental. Regorus Python bindings are not yet on PyPI; see [microsoft/regorus](https://github.com/microsoft/regorus/tree/main/bindings/python) for build-from-source instructions.
 - YAML policy compiler: write policies in YAML, compile to Rego via `kitelogik compile`; JSON Schema validation via `kitelogik validate`.
 - Starter Rego policies: `financial`, `security`, `delegation`, `agent_lifecycle`, `agent_plan`, `agent_budget`, `data_classification`, `main`.
 - Policy library (`policies/library/`): `tool_allowlist`, `pii_protection`, `read_only`, `cost_cap`, `rate_limiting` — all with OPA tests.

@@ -21,7 +21,7 @@ Please include:
 - Potential impact — what can an attacker achieve?
 - Any suggested fix or mitigating control
 
-If you cannot use the advisory feature, email [security@kitelogik.com](mailto:security@kitelogik.com) with subject line `[SECURITY] <brief description>`. Encrypt with our PGP key if the content is sensitive (key available on keyserver.ubuntu.com, fingerprint published in the GitHub org profile).
+If you cannot use the advisory feature, email [security@kitelogik.com](mailto:security@kitelogik.com) with subject line `[SECURITY] <brief description>`.
 
 ## Response Timeline
 

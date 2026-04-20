@@ -25,13 +25,16 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 docker compose up -d opa           # start OPA policy engine
 
+# Optional — reproducible, hash-pinned dev environment (CI uses this):
+#   pip install -e . --require-hashes -r requirements-dev.txt
+
 cp .env.example .env               # add ANTHROPIC_API_KEY if you need the LLM demo
 ```
 
 Verify everything works:
 
 ```bash
-pytest -q                          # 681+ unit tests, no Docker required
+pytest -q                          # 484 unit tests, no Docker required
 opa test kitelogik/policies/ -v              # OPA embedded tests (requires opa binary)
 kitelogik compliance               # governance compliance audit
 ```
@@ -315,7 +318,7 @@ The SPDX header (`CPY001`) cannot be auto-fixed — add it manually to new files
 ## Running Tests
 
 ```bash
-# Unit tests — 681+ tests, no Docker required
+# Unit tests — 484 tests, no Docker required
 pytest -q
 
 # Specific modules
@@ -367,7 +370,7 @@ If you forget, amend the last commit: `git commit --amend -s`.
 
 3. **Checklist before opening:**
    - [ ] `ruff check . && ruff format --check .` passes
-   - [ ] `pytest -q` passes (681+ tests)
+   - [ ] `pytest -q` passes (484 tests)
    - [ ] `opa test kitelogik/policies/ -v` passes (if you changed any `.rego` file)
    - [ ] `kitelogik compliance` shows no regressions (if you changed policies)
    - [ ] New code has `# SPDX-License-Identifier: Apache-2.0` header

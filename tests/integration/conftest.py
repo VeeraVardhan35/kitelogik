@@ -17,7 +17,7 @@ import pytest
 from kitelogik.tether.gate import PolicyGate
 from kitelogik.tether.opa_client import OPAClient
 
-POLICIES_DIR = Path(__file__).parent.parent.parent / "policies"
+POLICIES_DIR = Path(__file__).parent.parent.parent / "kitelogik" / "policies"
 OPA_E2E_PORT = 18182  # Different from adversarial port (18181) to allow parallel runs
 
 

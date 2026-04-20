@@ -50,7 +50,9 @@ Changelog = "https://github.com/kitelogik/kitelogik/blob/main/CHANGELOG.md"
 "Source Code" = "https://github.com/kitelogik/kitelogik"
 
 [project.optional-dependencies]
-regorus = ["regoruspy>=0.1.0"]
+# Note: Microsoft's Regorus Python bindings are not yet on PyPI — they must be
+# built from source. See kitelogik/tether/regorus_client.py for install steps.
+# Upstream: https://github.com/microsoft/regorus/tree/main/bindings/python
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
