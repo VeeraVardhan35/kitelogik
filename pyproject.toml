@@ -90,8 +90,8 @@ dev = [
 #   default = "kitelogik_enterprise.audit.postgres:PostgresAuditStore"
 
 [tool.setuptools.packages.find]
-include = ["kitelogik*", "examples*"]
-exclude = ["tests*", ".venv*"]
+include = ["kitelogik*"]
+exclude = ["tests*", ".venv*", "examples*", "benchmarks*", "dev*"]
 
 [tool.setuptools.package-data]
 kitelogik = ["py.typed", "policies/**/*.rego", "policies/**/*.yaml", "policies/**/*.yml"]
