@@ -171,9 +171,7 @@ _TEMPORAL = r"(?:previous|prior|earlier|above|preceding|foregoing)"
 # excluded because they collide with legitimate business data. Attackers
 # phrasing an attack in those forms can trivially substitute to
 # "instructions" / "rules" instead.
-_INSTRUCTION_NOUN = (
-    r"(?:instructions?|rules?|guidance|guidelines?|directives?|prompts?)"
-)
+_INSTRUCTION_NOUN = r"(?:instructions?|rules?|guidance|guidelines?|directives?|prompts?)"
 
 _INJECTION_PATTERNS: list[tuple[str, str]] = [
     # Temporal qualifier REQUIRED for soft verbs — guards against false
