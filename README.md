@@ -163,7 +163,7 @@ tools = govern_toolkit(existing_tools, gate=gate, context=ctx)
 agent = create_react_agent(llm, tools=tools)
 ```
 
-**11 framework adapters** — OpenAI, LangChain, CrewAI, OpenAI Agents SDK, LangGraph, Google ADK, PydanticAI, LlamaIndex, Semantic Kernel, Haystack, Dify. All share the same governance pipeline. See `docs/implementation-guide.md` for usage examples.
+**11 framework adapters** — OpenAI, LangChain, CrewAI, OpenAI Agents SDK, LangGraph, Google ADK, PydanticAI, LlamaIndex, Semantic Kernel, Haystack, Dify. All share the same governance pipeline — see the docstrings in `kitelogik/adapters/` for per-framework usage examples.
 
 ## Writing Policies
 
@@ -376,9 +376,9 @@ python benchmarks/bench_memory_session.py   # memory + credential broker (no OPA
 
 ## Further Reading
 
-- [Architecture & Threat Model](docs/architecture.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ---
 

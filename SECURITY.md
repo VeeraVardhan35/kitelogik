@@ -58,7 +58,7 @@ We will keep you informed throughout the process. If you do not receive an ackno
 
 ## Security Design
 
-Kite Logik's threat model is documented in [`docs/architecture.md`](docs/architecture.md). The primary attack classes we defend against are:
+Kite Logik is designed around a few primary attack classes we actively defend against:
 
 - **Indirect prompt injection** — malicious instructions in tool responses
 - **Memory poisoning (MINJA)** — attacker-controlled writes to agent memory
