@@ -161,7 +161,13 @@ class PolicyGate:
 
             if decision.deny:
                 span.set_status(Status(StatusCode.ERROR, "Hard blocked by security policy"))
-                logger.warning(
+                # INFO, not WARNING: a hard deny is the expected, normal output of
+                # a policy engine doing its job. Callers receive the PolicyDecision
+                # and can log/alert at whatever level suits their application. The
+                # OTel span already carries ERROR status + reason for observability.
+                # (The invalid-session-token path above stays at WARNING — that is
+                # an anomaly, not routine policy enforcement.)
+                logger.info(
                     "Tool call hard blocked by security policy",
                     extra={
                         "action": tool_call.action,
@@ -269,7 +275,8 @@ class PolicyGate:
 
             if decision.deny:
                 span.set_status(Status(StatusCode.ERROR, "Governance event hard blocked"))
-                logger.warning(
+                # INFO, not WARNING — see rationale in evaluate_tool_call.
+                logger.info(
                     "Governance event hard blocked",
                     extra={
                         "event_type": event.event_type,

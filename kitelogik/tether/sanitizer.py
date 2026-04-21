@@ -147,9 +147,56 @@ def _normalize_for_scan(text: str) -> str:
 # Ordered list of (regex_pattern, label) pairs.
 # Patterns are case-insensitive and anchored to detect injection attempts
 # embedded anywhere in tool output content.
+#
+# The "ignore X previous Y" family (ignore / disregard / forget / skip /
+# bypass / cancel / override) is consolidated into shared sub-patterns
+# below. Each verb family follows the shape:
+#
+#   <verb> + <qualifier>{0,2} + <temporal> + <instruction-noun>      (soft)
+#   <verb> + <qualifier>{0,2} + <temporal>? + <instruction-noun>     (strong)
+#
+# Temporal is REQUIRED for the soft verbs ("ignore", "skip", "bypass",
+# "cancel", "override") — without it, "ignore the spam" would match. It
+# is OPTIONAL for the strong verbs ("disregard", "forget") whose verb
+# alone already implies an instruction context. Both the temporal
+# alternation and the noun alternation are flat (no nested quantifiers),
+# so the regex engine runs in linear time on any input.
+# Zero, one, or two stacked qualifiers (e.g. "all your", "the previous")
+# — bounded to prevent catastrophic backtracking.
+_QUALIFIER = r"(?:(?:all|the|your|any)\s+){0,2}"
+_TEMPORAL = r"(?:previous|prior|earlier|above|preceding|foregoing)"
+# Target nouns kept deliberately narrow — only words that describe
+# meta-instruction in an agent/LLM context. Generic nouns like "data",
+# "steps", "emails", "orders" (e-commerce), "directions" (navigation) are
+# excluded because they collide with legitimate business data. Attackers
+# phrasing an attack in those forms can trivially substitute to
+# "instructions" / "rules" instead.
+_INSTRUCTION_NOUN = (
+    r"(?:instructions?|rules?|guidance|guidelines?|directives?|prompts?)"
+)
+
 _INJECTION_PATTERNS: list[tuple[str, str]] = [
-    (r"ignore\s+(all\s+)?previous\s+instructions?", "ignore_previous_instructions"),
-    (r"disregard\s+(your\s+)?(previous\s+)?instructions?", "disregard_instructions"),
+    # Temporal qualifier REQUIRED for soft verbs — guards against false
+    # positives on phrases like "ignore the spam folder".
+    (
+        rf"ignore\s+{_QUALIFIER}{_TEMPORAL}\s+{_INSTRUCTION_NOUN}",
+        "ignore_previous_instructions",
+    ),
+    # Temporal qualifier OPTIONAL for strong verbs — "disregard instructions"
+    # on its own is already suspicious enough to redact.
+    (
+        rf"disregard\s+{_QUALIFIER}(?:{_TEMPORAL}\s+)?{_INSTRUCTION_NOUN}",
+        "disregard_instructions",
+    ),
+    (
+        rf"forget\s+{_QUALIFIER}(?:{_TEMPORAL}\s+)?(?:{_INSTRUCTION_NOUN}|training)",
+        "forget_instructions",
+    ),
+    # skip / bypass / cancel / override + temporal + target.
+    (
+        rf"(?:skip|bypass|cancel|override)\s+{_QUALIFIER}{_TEMPORAL}\s+{_INSTRUCTION_NOUN}",
+        "override_previous_instructions",
+    ),
     # "you are now" followed by something that strips restrictions
     (
         r"you\s+are\s+now\s+(an?\s+)?(?:unrestricted|unfiltered|jailbroken)",
@@ -166,10 +213,6 @@ _INJECTION_PATTERNS: list[tuple[str, str]] = [
     (
         r"(?:print|show|output|reveal|display)\s+(your\s+)?(system\s+)?(?:prompt|instructions?)",
         "prompt_extraction",
-    ),
-    (
-        r"forget\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?(?:instructions?|training|guidelines?)",
-        "forget_instructions",
     ),
     # Role-confusion attempts — instruct the model to assume a persona that
     # would strip its guardrails. Distinct from "you are now unrestricted"
