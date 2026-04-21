@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for anchor.queue.HITLQueue (in-memory SQLite via :memory:).
+Tests for anchor.queue.HITLQueue (file-backed SQLite via tmp_path).
 """
 
 import asyncio
@@ -210,3 +210,10 @@ async def test_start_expiry_task_returns_cancellable_task(queue):
     except asyncio.CancelledError:
         pass
     assert task.done()
+
+
+def test_memory_db_path_rejected() -> None:
+    """`:memory:` can't work across thread hops; must raise instead of silently
+    creating a literal ':memory:' file in cwd."""
+    with pytest.raises(ValueError, match="':memory:'"):
+        HITLQueue(db_path=":memory:")

@@ -91,6 +91,13 @@ class MemoryStore:
     """
 
     def __init__(self, db_path: str = "memory.db") -> None:
+        # See HITLQueue.__init__ — `:memory:` would either silently drop state
+        # across thread hops or get resolved to a literal file on disk.
+        if db_path == ":memory:":
+            raise ValueError(
+                "MemoryStore does not support ':memory:' — use a file path "
+                "(e.g. tempfile.mkdtemp() + '/memory.db')."
+            )
         self._db_path = str(Path(db_path).resolve())
 
     # ── sync helpers ───────────────────────────────────────────────────────

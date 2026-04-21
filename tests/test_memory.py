@@ -84,3 +84,10 @@ async def test_provenance_metadata_stored(store):
     assert entry.session_id == "sess_x"
     assert entry.created_at is not None
     assert entry.updated_at is not None
+
+
+def test_memory_db_path_rejected() -> None:
+    """`:memory:` can't work across thread hops; must raise rather than silently
+    create a literal ':memory:' file in cwd."""
+    with pytest.raises(ValueError, match="':memory:'"):
+        MemoryStore(db_path=":memory:")

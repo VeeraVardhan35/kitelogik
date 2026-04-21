@@ -118,6 +118,17 @@ class HITLQueue:
     """
 
     def __init__(self, db_path: str = "hitl.db") -> None:
+        # `:memory:` can't work here — each `asyncio.to_thread` hop opens its
+        # own sqlite3 connection, and a bare `:memory:` DB is per-connection.
+        # Accepting it would either silently drop state or (before this guard)
+        # get resolved to a literal file named ":memory:" on disk. Point
+        # callers at a short-lived temp file instead.
+        if db_path == ":memory:":
+            raise ValueError(
+                "HITLQueue does not support ':memory:' — connections hop across "
+                "threads, and in-memory SQLite databases are not shared between "
+                "connections. Use a file path (e.g. tempfile.mkdtemp() + '/hitl.db')."
+            )
         self._db_path = str(Path(db_path).resolve())
         self._events: dict[str, asyncio.Event] = {}  # action_id → decision event
 

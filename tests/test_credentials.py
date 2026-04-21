@@ -241,3 +241,10 @@ def test_ttl_expiry_at_boundary_rejects_validate(broker, monkeypatch):
     assert broker.validate(token.token_id) is None, (
         "validate() must return None for a token whose expires_at has passed"
     )
+
+
+def test_persistent_broker_memory_db_path_rejected() -> None:
+    """`:memory:` can't work across thread hops; must raise rather than silently
+    create a literal ':memory:' file in cwd."""
+    with pytest.raises(ValueError, match="':memory:'"):
+        PersistentCredentialBroker(db_path=":memory:")

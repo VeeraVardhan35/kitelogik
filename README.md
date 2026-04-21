@@ -165,6 +165,8 @@ agent = create_react_agent(llm, tools=tools)
 
 **11 framework adapters** — OpenAI, LangChain, CrewAI, OpenAI Agents SDK, LangGraph, Google ADK, PydanticAI, LlamaIndex, Semantic Kernel, Haystack, Dify. All share the same governance pipeline — see the docstrings in `kitelogik/adapters/` for per-framework usage examples.
 
+**Browse runnable examples** — every snippet above has a standalone script in [`examples/`](examples/) (decorator, GovernedToolbox, OpenAI, LangChain, HITL escalation). Start with [`examples/01_decorator.py`](examples/01_decorator.py).
+
 ## Writing Policies
 
 ### Option A: YAML (no Rego required)
@@ -376,6 +378,7 @@ python benchmarks/bench_memory_session.py   # memory + credential broker (no OPA
 
 ## Further Reading
 
+- [Examples](examples/) — runnable scripts for each integration pattern
 - [Contributing](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)

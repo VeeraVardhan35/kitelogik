@@ -219,6 +219,13 @@ class PersistentCredentialBroker(CredentialBroker):
 
     def __init__(self, db_path: str = "credentials.db") -> None:
         super().__init__()
+        # See HITLQueue.__init__ — `:memory:` would either silently drop state
+        # across thread hops or get resolved to a literal file on disk.
+        if db_path == ":memory:":
+            raise ValueError(
+                "CredentialBroker does not support ':memory:' — use a file "
+                "path (e.g. tempfile.mkdtemp() + '/credentials.db')."
+            )
         self._db_path = str(Path(db_path).resolve())
         self._setup()
         self._load_unexpired()

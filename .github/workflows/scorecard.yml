@@ -1,0 +1,59 @@
+name: OpenSSF Scorecard
+
+# Runs weekly + on pushes to main. Scorecard requires the repo to be public;
+# the job is a no-op while the repo is private. After the visibility flip the
+# first run populates the Security tab and api.securityscorecards.dev, which
+# powers the badge in README.md.
+#
+# Docs: https://github.com/ossf/scorecard-action
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 06:00 UTC
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    # Skip while the repo is private — Scorecard requires public access to
+    # gather supply-chain signals. Remove this guard after the public flip
+    # if you prefer the job to always attempt a run.
+    if: github.event.repository.visibility == 'public'
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Required for branch-protection + weekly-cadence checks; publishes
+          # results to the public Scorecard API so the README badge resolves.
+          publish_results: true
+
+      - name: Upload SARIF to code-scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 14
