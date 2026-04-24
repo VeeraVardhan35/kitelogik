@@ -68,6 +68,8 @@ class _StubLLMClient:
     ``AnthropicLLMClient``.
     """
 
+    default_model: str = "claude-sonnet-4-6"
+
     def __init__(self, responses: list[_Response]) -> None:
         self._queue = list(responses)
 
@@ -87,8 +89,14 @@ class _StubLLMClient:
             raw_content=raw.content,
         )
 
-    def format_tool_result(self, tool_call_id: str, content: str) -> dict:
-        return {"type": "tool_result", "tool_use_id": tool_call_id, "content": content}
+    def build_tool_result_messages(
+        self, pairs: list[tuple[str, str]]
+    ) -> list[dict]:
+        content = [
+            {"type": "tool_result", "tool_use_id": tid, "content": out}
+            for tid, out in pairs
+        ]
+        return [{"role": "user", "content": content}]
 
     def format_assistant_message(self, raw_content: Any) -> dict:
         return {"role": "assistant", "content": raw_content}

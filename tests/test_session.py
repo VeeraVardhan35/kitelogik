@@ -42,12 +42,16 @@ def _make_mock_llm(*responses: LLMResponse) -> MagicMock:
     """Create a mock LLMClient that returns the given responses in sequence."""
     mock = MagicMock()
     mock.create_message = AsyncMock(side_effect=list(responses))
-    mock.format_tool_result = MagicMock(
-        side_effect=lambda tid, content: {
-            "type": "tool_result",
-            "tool_use_id": tid,
-            "content": content,
-        }
+    mock.build_tool_result_messages = MagicMock(
+        side_effect=lambda pairs: [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": tid, "content": out}
+                    for tid, out in pairs
+                ],
+            }
+        ]
     )
     mock.format_assistant_message = MagicMock(
         side_effect=lambda raw: {"role": "assistant", "content": raw}
@@ -220,7 +224,12 @@ async def test_delegated_child_token_is_revoked_on_session_exception(
         gate=mock_gate, context=ctx, llm_client=mock_llm, credential_broker=broker
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
+    # Provider-side failures are wrapped in LLMProviderError (see
+    # kitelogik.agents.errors). The original RuntimeError is on ``.original``
+    # and ``__cause__``.
+    from kitelogik.agents.errors import LLMProviderError
+
+    with pytest.raises(LLMProviderError, match="boom"):
         await session.run_async("ping")
 
     assert broker.validate(child.token_id) is None

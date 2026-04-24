@@ -251,12 +251,16 @@ class TestAgentSessionE2E:
     def _make_mock_llm(self, *responses: LLMResponse) -> MagicMock:
         mock = MagicMock()
         mock.create_message = AsyncMock(side_effect=list(responses))
-        mock.format_tool_result = MagicMock(
-            side_effect=lambda tid, content: {
-                "type": "tool_result",
-                "tool_use_id": tid,
-                "content": content,
-            }
+        mock.build_tool_result_messages = MagicMock(
+            side_effect=lambda pairs: [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": tid, "content": out}
+                        for tid, out in pairs
+                    ],
+                }
+            ]
         )
         mock.format_assistant_message = MagicMock(
             side_effect=lambda raw: {"role": "assistant", "content": raw}

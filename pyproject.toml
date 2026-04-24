@@ -65,6 +65,8 @@ dev = [
     "livereload>=2.7.0",
     "hypothesis>=6.0",
 ]
+openai = ["openai>=1.0.0"]
+google = ["google-genai>=0.3.0"]
 
 # ── Enterprise extension points ───────────────────────────────────────────────
 # The kitelogik-enterprise package registers its implementations here.
