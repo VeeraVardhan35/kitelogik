@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,openai,google]"
       - run: pip install pytest-cov
       - name: Run unit tests with coverage
         run: >
@@ -50,7 +50,7 @@ jobs:
           --tb=short
           --cov
           --cov-report=xml
-          --cov-fail-under=70
+          --cov-fail-under=80
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
