@@ -16,12 +16,8 @@ import pytest
 
 from kitelogik.agents.llm import (
     AnthropicLLMClient,
-    LLMResponse,
-    RetryConfig,
-    ToolCall,
     is_retryable_error,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # is_retryable_error edge cases
@@ -101,9 +97,7 @@ async def test_anthropic_create_message_parses_text_block(monkeypatch):
     )
     client._client.messages.create = AsyncMock(return_value=response)
 
-    resp = await client.create_message(
-        model="claude-sonnet-4-6", messages=[], tools=[], system=""
-    )
+    resp = await client.create_message(model="claude-sonnet-4-6", messages=[], tools=[], system="")
     assert resp.stop_reason == "end_turn"
     assert resp.text_content == "hello world"
     assert resp.input_tokens == 12
@@ -128,9 +122,7 @@ async def test_anthropic_create_message_parses_tool_use(monkeypatch):
     )
     client._client.messages.create = AsyncMock(return_value=response)
 
-    resp = await client.create_message(
-        model="claude-sonnet-4-6", messages=[], tools=[], system=""
-    )
+    resp = await client.create_message(model="claude-sonnet-4-6", messages=[], tools=[], system="")
     assert resp.stop_reason == "tool_use"
     assert len(resp.tool_calls) == 1
     assert resp.tool_calls[0].id == "tu_001"
@@ -148,9 +140,7 @@ async def test_anthropic_create_message_without_usage(monkeypatch):
     response = SimpleNamespace(content=[text_block], stop_reason="end_turn", usage=None)
     client._client.messages.create = AsyncMock(return_value=response)
 
-    resp = await client.create_message(
-        model="claude-sonnet-4-6", messages=[], tools=[], system=""
-    )
+    resp = await client.create_message(model="claude-sonnet-4-6", messages=[], tools=[], system="")
     assert resp.input_tokens is None
     assert resp.output_tokens is None
 

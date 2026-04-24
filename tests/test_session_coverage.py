@@ -7,18 +7,17 @@ handling, audit-failure tolerance, soft-deny path, and the sanitize hook.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from kitelogik.agents import AgentSession
 from kitelogik.agents.llm import LLMResponse, ToolCall
-from kitelogik.anchor.models import ActionStatus, PendingAction
+from kitelogik.anchor.models import ActionStatus
 from kitelogik.governed import GovernanceError
 from kitelogik.memory.models import TrustTier
 from kitelogik.tether.gate import PolicyGate
-from kitelogik.tether.models import PolicyDecision, RiskTier, SessionContext
+from kitelogik.tether.models import PolicyDecision, RiskTier
 from tests.conftest import make_mock_llm
 
 
@@ -32,7 +31,10 @@ def _allow(reason: str = "Allowed") -> PolicyDecision:
     )
 
 
-def _deny(reason: str = "denied", risk_tier: RiskTier = RiskTier.SECURITY_CRITICAL) -> PolicyDecision:
+def _deny(
+    reason: str = "denied",
+    risk_tier: RiskTier = RiskTier.SECURITY_CRITICAL,
+) -> PolicyDecision:
     return PolicyDecision(
         allow=False,
         deny=True,
@@ -183,9 +185,7 @@ async def test_hitl_denied_surfaces_reason(agent_ctx):
         ]
     )
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, hitl_queue=hitl_queue
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, hitl_queue=hitl_queue)
     result = await session.run_async("execute")
 
     assert len(result.blocked_calls) == 1
@@ -274,9 +274,7 @@ async def test_query_memory_returns_entry(agent_ctx):
         ]
     )
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory)
     result = await session.run_async("what's the favourite colour?")
     assert result.final_response == "got it"
     memory.read.assert_awaited_once_with("favourite_colour")
@@ -298,9 +296,7 @@ async def test_query_memory_missing_key(agent_ctx):
         ]
     )
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory)
     await session.run_async("read it")
     memory.read.assert_awaited_once_with("absent")
 
@@ -338,9 +334,7 @@ async def test_write_memory_uses_default_policy(agent_ctx):
         ]
     )
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, memory_store=memory)
     await session.run_async("save it")
     # Primary session — default policy writes at EXTERNAL
     assert captured["trust_tier"] == TrustTier.EXTERNAL
@@ -385,9 +379,7 @@ async def test_sanitize_on_event_emitted(agent_ctx):
     def handler(name: str, args: dict) -> str:
         return "safe output"
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, tool_handler=handler
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, tool_handler=handler)
     events: list[dict] = []
     await session.run_async("go", on_event=events.append)
     assert any(e["type"] == "sanitize" for e in events)
@@ -409,9 +401,7 @@ async def test_async_tool_handler_awaited(agent_ctx):
     async def async_handler(name: str, args: dict) -> str:
         return "async result"
 
-    session = AgentSession(
-        gate=gate, context=agent_ctx, llm_client=llm, tool_handler=async_handler
-    )
+    session = AgentSession(gate=gate, context=agent_ctx, llm_client=llm, tool_handler=async_handler)
     result = await session.run_async("go")
     assert result.final_response == "done"
 

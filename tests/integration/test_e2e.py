@@ -89,12 +89,9 @@ class _StubLLMClient:
             raw_content=raw.content,
         )
 
-    def build_tool_result_messages(
-        self, pairs: list[tuple[str, str]]
-    ) -> list[dict]:
+    def build_tool_result_messages(self, pairs: list[tuple[str, str]]) -> list[dict]:
         content = [
-            {"type": "tool_result", "tool_use_id": tid, "content": out}
-            for tid, out in pairs
+            {"type": "tool_result", "tool_use_id": tid, "content": out} for tid, out in pairs
         ]
         return [{"role": "user", "content": content}]
 
