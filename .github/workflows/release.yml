@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # full history so git-cliff sees every commit since the last tag
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -92,9 +92,17 @@ jobs:
         with:
           name: sbom
           path: sbom/
+      - name: Generate release notes (git-cliff)
+        id: changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip all
+        env:
+          OUTPUT: release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: ${{ steps.changelog.outputs.changelog }}
           files: |
             dist/*
             sbom/kitelogik-sbom.cdx.json

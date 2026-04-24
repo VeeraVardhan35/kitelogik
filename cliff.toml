@@ -1,0 +1,74 @@
+# git-cliff configuration for Kite Logik
+# https://git-cliff.org/docs/configuration
+#
+# Maps Conventional Commits (feat/fix/docs/...) to Keep a Changelog
+# sections (Added/Fixed/Changed/...). Used by the Release workflow to
+# generate the GitHub release body; can also be run locally to preview
+# the Unreleased section before tagging:
+#
+#     git-cliff --unreleased
+#     git-cliff --unreleased --prepend CHANGELOG.md   # stage into the file
+
+[changelog]
+header = """
+# Changelog\n
+All notable changes to Kite Logik are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] — {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | upper_first }}
+    {% for commit in commits %}\
+        - {{ commit.message | upper_first | split(pat="\\n") | first }}\
+          {% if commit.scope %} (*{{ commit.scope }}*){% endif %}\
+          {% if commit.breaking %} **BREAKING**{% endif %}\
+          {% if commit.id %} ({{ commit.id | truncate(length=7, end="") }}){% endif %}
+    {% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+# Skip commit messages that match these patterns entirely
+commit_preprocessors = [
+    # Strip trailing Co-Authored-By footers from the commit subject
+    { pattern = '\n\nCo-Authored-By:.*', replace = "" },
+]
+commit_parsers = [
+    # Breaking changes land in a dedicated section regardless of type
+    { message = "^.+!:", group = "Changed (breaking)" },
+    { body = ".*BREAKING CHANGE.*", group = "Changed (breaking)" },
+
+    { message = "^feat", group = "Added" },
+    { message = "^fix", group = "Fixed" },
+    { message = "^security", group = "Security" },
+    { message = "^perf", group = "Changed" },
+    { message = "^refactor", group = "Changed" },
+    { message = "^revert", group = "Changed" },
+    { message = "^docs", group = "Documentation" },
+
+    # Noise — filter out unless they slip through as breaking (handled above)
+    { message = "^test", skip = true },
+    { message = "^chore", skip = true },
+    { message = "^ci", skip = true },
+    { message = "^build", skip = true },
+    { message = "^style", skip = true },
+
+    # Anything else Conventional-looking falls through to "Other"
+    { message = ".*", group = "Other" },
+]
+# Protect against infinite history on a fresh clone / shallow checkout
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9].*"
+sort_commits = "oldest"

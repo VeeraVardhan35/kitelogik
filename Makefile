@@ -1,4 +1,4 @@
-.PHONY: stop clean test demo landing
+.PHONY: stop clean test demo landing changelog changelog-release
 
 stop:
 	@docker compose stop 2>/dev/null || true
@@ -22,3 +22,18 @@ landing:
 
 test:
 	pytest -q
+
+# Preview the Unreleased section that git-cliff will emit at release time.
+# No files are modified; it prints to stdout. Useful before tagging.
+changelog:
+	@pip install git-cliff -q
+	@git-cliff --unreleased
+
+# Prepend the next version's section to CHANGELOG.md. Pass VERSION=v0.2.0.
+# Review the diff before committing.
+#     make changelog-release VERSION=v0.2.0
+changelog-release:
+	@test -n "$(VERSION)" || (echo "VERSION is required, e.g. make changelog-release VERSION=v0.2.0"; exit 1)
+	@pip install git-cliff -q
+	@git-cliff --tag $(VERSION) --unreleased --prepend CHANGELOG.md
+	@echo "CHANGELOG.md updated — review and commit."
