@@ -1,7 +1,7 @@
 # Kite Logik
 
 [![CI](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml/badge.svg)](https://github.com/kitelogik/kitelogik/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-484%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
+[![Tests](https://img.shields.io/badge/tests-605%20passing-brightgreen)](https://github.com/kitelogik/kitelogik/actions)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org)
 [![PyPI](https://img.shields.io/pypi/v/kitelogik.svg)](https://pypi.org/project/kitelogik/)
@@ -295,7 +295,7 @@ kitelogik/
   observability/    OpenTelemetry tracing
   mcp/              MCP client with supply chain verification
   policies/         OPA/Rego rules, YAML compiler, starter library, examples
-tests/              484 tests across unit, integration, adversarial, fuzz, benchmark suites
+tests/              605 tests across unit, integration, adversarial, fuzz, benchmark suites
 ```
 
 ## OSS vs Enterprise
@@ -356,7 +356,7 @@ For enterprise licensing: [licensing@kitelogik.com](mailto:licensing@kitelogik.c
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 docker compose up -d opa    # start OPA policy engine
 
-make test           # 484 tests
+make test           # 605 tests (520 unit + 85 adversarial)
 make lint           # ruff check + format
 
 # Policy management
