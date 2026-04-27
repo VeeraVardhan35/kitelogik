@@ -103,6 +103,29 @@ async def test_as_governed_tool_denies_call_returns_blocked_message(gate, ctx, m
     assert "[BLOCKED]" in result
 
 
+async def test_as_governed_tool_multi_arg_via_public_ainvoke(gate, ctx, mock_opa, allow_dec):
+    """Regression test: multi-arg tools invoked via the public ``ainvoke``
+    API (the path LangGraph's tool node uses) must accept per-arg payloads
+    and route them to ``fn``. Before the args_schema inference fix, this
+    failed with Pydantic validation errors because the wrapper's
+    ``**kwargs`` signature gave StructuredTool no schema to validate against.
+    """
+    mock_opa.evaluate.return_value = allow_dec
+
+    def place_order(sku: str, qty: int) -> str:
+        return f"PO:{qty}x{sku}"
+
+    tool = as_governed_tool(
+        name="place_order",
+        fn=place_order,
+        gate=gate,
+        context=ctx,
+        description="Place a purchase order.",
+    )
+    result = await tool.ainvoke({"sku": "SKU-002", "qty": 50})
+    assert result == "PO:50xSKU-002"
+
+
 async def test_as_governed_tool_async_function_executed_correctly(gate, ctx, mock_opa, allow_dec):
     mock_opa.evaluate.return_value = allow_dec
 

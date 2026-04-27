@@ -124,13 +124,57 @@ def as_governed_tool(
         result: str = _run_coroutine_sync(_governed_async(**kwargs))
         return result
 
+    # Infer a Pydantic args schema from `fn`'s signature so LangChain can
+    # validate per-argument types from the model's tool call. Without this
+    # the StructuredTool falls back to inferring from the wrapper's
+    # ``**kwargs`` signature, which yields no fields and rejects every
+    # call with a Pydantic validation error.
+    args_schema = _build_args_schema_from_fn(fn, name)
+
     # Build a StructuredTool — supports both sync and async invocation
     return StructuredTool.from_function(
         func=_governed_sync,
         coroutine=_governed_async,
         name=name,
         description=description or f"Governed tool: {name}",
+        args_schema=args_schema,
     )
+
+
+def _build_args_schema_from_fn(fn: Callable, name: str) -> Any:
+    """Build a Pydantic ``BaseModel`` mirroring ``fn``'s signature.
+
+    Used to give LangChain's ``StructuredTool`` a real schema instead of
+    inferring from the governed wrapper's ``**kwargs``. Falls back to
+    ``None`` if ``fn`` has no inspectable parameters or if Pydantic is
+    not importable, in which case StructuredTool's default inference
+    runs (covering the no-args case).
+    """
+    try:
+        from pydantic import create_model
+    except ImportError:
+        return None
+
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return None
+
+    fields: dict[str, Any] = {}
+    for param_name, param in sig.parameters.items():
+        if param_name in ("self", "cls"):
+            continue
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            # Skip *args / **kwargs — LangChain wants concrete fields
+            continue
+        annotation = param.annotation if param.annotation is not param.empty else str
+        default = ... if param.default is param.empty else param.default
+        fields[param_name] = (annotation, default)
+
+    if not fields:
+        return None
+
+    return create_model(f"{name.capitalize()}Args", **fields)
 
 
 def govern_toolkit(

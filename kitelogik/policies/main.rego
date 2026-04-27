@@ -34,6 +34,22 @@ allow if {
 	financial.allow
 }
 
+# Propagate financial-package hard denies. The YAML compiler emits
+# set-valued `deny[reason] if {...}` rules for `then: deny`. Iterating
+# membership avoids type errors when the package's `deny` happens to be
+# boolean-defaulted in some hand-written rego.
+deny if {
+	some msg
+	financial.deny[msg]
+}
+
+# Propagate financial-package HITL routes (`then: hitl` in YAML). Routes
+# the action to human review without hard-denying it.
+requires_hitl if {
+	some msg
+	financial.hitl[msg]
+}
+
 # --- Agent lifecycle event routing ---
 
 # Route agent.spawn and agent.delegate to agent_lifecycle policy

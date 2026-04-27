@@ -109,9 +109,10 @@ def _render_rego(policy: PolicyFile) -> str:
     lines.append("import future.keywords.in")
     lines.append("")
 
-    # Separate allow and deny rules
+    # Separate allow / deny / hitl rules
     allow_rules = [r for r in policy.rules if r.then == "allow"]
     deny_rules = [r for r in policy.rules if r.then == "deny"]
+    hitl_rules = [r for r in policy.rules if r.then == "hitl"]
 
     # Default values
     if allow_rules:
@@ -124,6 +125,13 @@ def _render_rego(policy: PolicyFile) -> str:
     boolean_deny_rules = [r for r in deny_rules if not r.reason]
     if boolean_deny_rules:
         lines.append("default deny := false")
+        lines.append("")
+    # HITL rules always have a reason — they compile to set-valued
+    # `hitl[msg] if {}` and default to an empty set automatically.
+    # No `default hitl := false` declaration to avoid the same
+    # conflict described above for deny.
+    if hitl_rules and any(not r.reason for r in hitl_rules):
+        lines.append("default hitl := false")
         lines.append("")
     lines.append('default risk_tier := "OPERATIONAL"')
     lines.append("")
@@ -152,6 +160,11 @@ def _render_rule(rule: Rule) -> list[str]:
             lines.append(f'deny["{rule.reason}"] if {{')
         else:
             lines.append("deny if {")
+    elif rule.then == "hitl":
+        if rule.reason:
+            lines.append(f'hitl["{rule.reason}"] if {{')
+        else:
+            lines.append("hitl if {")
     else:
         lines.append("allow if {")
 

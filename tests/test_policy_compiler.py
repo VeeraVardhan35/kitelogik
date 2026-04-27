@@ -250,6 +250,69 @@ rules:
         assert "allow if {" in rego
         assert 'deny["No deletions"] if {' in rego
 
+    def test_then_hitl_compiles_to_set_valued_hitl_rule(self):
+        """`then: hitl` compiles to a set-valued `hitl[reason] if {}` rule.
+
+        Distinguished from `then: deny` so that OSS main.rego can route
+        the action to human review (requires_hitl=True) rather than
+        hard-blocking it (deny=True).
+        """
+        yaml_src = """
+version: 1
+package: kitelogik.test
+rules:
+  - name: hitl_high_value_payment
+    when:
+      action: initiate_payment
+      args:
+        amount:
+          gt: 15000
+    then: hitl
+    reason: "Treasury manager approval required"
+"""
+        rego = compile_yaml_string(yaml_src)
+        assert 'hitl["Treasury manager approval required"] if {' in rego
+        assert "default hitl := false" not in rego  # set-valued, not boolean
+        # Must NOT compile as a deny — that would hard-block instead of HITL.
+        assert "deny" not in rego.replace("# ", "")  # ignore the comment line
+
+    def test_then_hitl_and_then_deny_coexist(self):
+        """A single policy file can mix HITL routes and hard denies."""
+        yaml_src = """
+version: 1
+package: kitelogik.test
+rules:
+  - name: hitl_review
+    when:
+      action: review
+    then: hitl
+    reason: "Needs review"
+  - name: block_dangerous
+    when:
+      action: nuke
+    then: deny
+    reason: "Hard block"
+"""
+        rego = compile_yaml_string(yaml_src)
+        assert 'hitl["Needs review"] if {' in rego
+        assert 'deny["Hard block"] if {' in rego
+
+    def test_invalid_then_value_rejected(self):
+        """Anything other than allow/deny/hitl is rejected at parse time."""
+        from pydantic import ValidationError
+
+        yaml_src = """
+version: 1
+package: kitelogik.test
+rules:
+  - name: bad
+    when:
+      action: x
+    then: warn
+"""
+        with pytest.raises(ValidationError, match="Input should be 'allow', 'deny' or 'hitl'"):
+            compile_yaml_string(yaml_src)
+
     def test_invalid_yaml_type_raises(self):
         with pytest.raises(ValueError, match="Expected a YAML mapping"):
             compile_yaml_string("- just a list")

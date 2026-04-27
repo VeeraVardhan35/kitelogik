@@ -42,11 +42,21 @@ class Condition(BaseModel):
 
 
 class Rule(BaseModel):
-    """A single policy rule in the YAML format."""
+    """A single policy rule in the YAML format.
+
+    ``then`` values
+    ---------------
+    - ``allow`` — the action is permitted
+    - ``deny``  — the action is hard-blocked. Reason surfaces in the audit
+      log and is never overridable by HITL approval.
+    - ``hitl``  — the action is routed for human review. Differs from
+      ``deny`` in that the gate sets ``requires_hitl=True`` rather than
+      ``deny=True``; an approver may still permit the action.
+    """
 
     name: str = Field(..., pattern=r"^[a-z][a-z0-9_]{0,63}$")
     when: Condition
-    then: Literal["allow", "deny"] = "deny"
+    then: Literal["allow", "deny", "hitl"] = "deny"
     reason: str = ""
     risk_tier: str | None = None
 
