@@ -4,6 +4,31 @@ All notable changes to Kite Logik are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-04-27
+
+### Changed (breaking)
+- Move demo tools out of AgentSession default, extract timeout/token constants, close Phase 1a policy audit (null delegation_depth bypass, default-declaration hygiene, dead rate_limit         constant, opa fmt --fail), and refresh CLAUDE.md for OSS/Enterprise/Landing split **BREAKING** (14d13b4)
+- Multi-provider AgentSession + numpy-docstringed API (*agents*) **BREAKING** (c3e1bba)
+- Add `then: hitl` to YAML compiler + propagate to main (*policies*) **BREAKING** (98cdce1)
+
+
+### Documentation
+- Remove dead links to private architecture doc (411daad)
+- Add runnable examples directory (*examples*) (1281aec)
+
+
+### Fixed
+- CI failures (5d3b522)
+- Resolve mypy errors, scorecard on private repo, coverage threshold (b0c27c4)
+- Ruff lint errors (cbc4634)
+- Ruff format (f8814d1)
+- Import sorting (I001) (2d1dcbe)
+- Resolve all mypy type errors (5791566)
+- Quiet hard-deny logging + broaden injection patterns (*tether*) (48b10fc)
+- Ruff lint + format drift on new coverage tests (*tests*) (33973cb)
+- Use public ainvoke API for langchain-core ≥0.3 (*adapters/langchain*) (2a43bcc)
+
+
 ---
 
 ## [Unreleased]
