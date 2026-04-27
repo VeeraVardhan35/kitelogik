@@ -15,6 +15,8 @@ jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,6 +25,13 @@ jobs:
           cache: pip
       - run: pip install build
       - run: python -m build
+      - name: Generate artifact hashes for SLSA provenance
+        id: hash
+        working-directory: dist
+        run: |
+          # base64-encoded SHA-256 of every file in dist/ — fed to the
+          # SLSA generator's `base64-subjects` input.
+          echo "hashes=$(sha256sum * | base64 -w0)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -59,7 +68,10 @@ jobs:
       contents: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
-      base64-subjects-as-file: true
+      # SHA-256 hashes of dist/* artifacts, base64-encoded — produced
+      # by the build job's `hash` step. The generator signs an in-toto
+      # statement attesting these subjects.
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
       upload-assets: false
 
   publish-pypi:
