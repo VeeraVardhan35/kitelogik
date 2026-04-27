@@ -4,6 +4,16 @@ All notable changes to Kite Logik are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-04-27
+
+### Documentation
+- Bump test count 484 → 605 in README (48c1970)
+
+
+### Fixed
+- SLSA generator needs hashes from build job, not as-file flag (*ci*) (dcec8b9)
+
+
 ## [0.2.0] — 2026-04-27
 
 ### Changed (breaking)
