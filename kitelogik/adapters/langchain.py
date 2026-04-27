@@ -206,8 +206,16 @@ def _wrap_existing_tool(
         except GovernanceError as e:
             return f"[BLOCKED] {e}"
 
-        if hasattr(tool, "_arun"):
+        # Public API ainvoke/invoke handles RunnableConfig threading and is
+        # forward-compatible with langchain-core ≥0.3 which requires `config`
+        # in `_arun`. Falls back to the private accessors only when the public
+        # API is unavailable (older langchain-core).
+        if hasattr(tool, "ainvoke"):
+            result = await tool.ainvoke(kwargs)
+        elif hasattr(tool, "_arun"):
             result = await tool._arun(**kwargs)
+        elif hasattr(tool, "invoke"):
+            result = tool.invoke(kwargs)
         else:
             result = tool._run(**kwargs)
 

@@ -86,7 +86,7 @@ async def test_as_governed_tool_allows_call_and_returns_result(gate, ctx, mock_o
         gate=gate,
         context=ctx,
     )
-    result = await tool._arun(item_id="itm_001")
+    result = await tool.coroutine(item_id="itm_001")
     assert result == "data:itm_001"
 
 
@@ -99,7 +99,7 @@ async def test_as_governed_tool_denies_call_returns_blocked_message(gate, ctx, m
         gate=gate,
         context=ctx,
     )
-    result = await tool._arun()
+    result = await tool.coroutine()
     assert "[BLOCKED]" in result
 
 
@@ -115,7 +115,7 @@ async def test_as_governed_tool_async_function_executed_correctly(gate, ctx, moc
         gate=gate,
         context=ctx,
     )
-    result = await tool._arun(x=7)
+    result = await tool.coroutine(x=7)
     assert result == "async:7"
 
 
@@ -157,7 +157,7 @@ async def test_govern_toolkit_each_tool_passes_through_governance(gate, ctx, moc
     )
 
     governed_tools = govern_toolkit([tool], gate=gate, context=ctx)
-    result = await governed_tools[0]._arun(val="hello")
+    result = await governed_tools[0].coroutine(val="hello")
     assert result == "result:hello"
     mock_opa.evaluate.assert_called_once()
 
@@ -174,7 +174,7 @@ async def test_govern_toolkit_deny_returns_blocked_message(gate, ctx, mock_opa, 
     )
 
     governed_tools = govern_toolkit([tool], gate=gate, context=ctx)
-    result = await governed_tools[0]._arun()
+    result = await governed_tools[0].coroutine()
     assert "[BLOCKED]" in result
 
 
