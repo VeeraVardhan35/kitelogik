@@ -22,5 +22,24 @@ def test_all_tiers_are_valid():
     assert set(ADAPTER_MATURITY.values()) <= _VALID_TIERS
 
 
-def test_eleven_adapters_registered():
-    assert len(ADAPTER_MATURITY) == 11
+# The adapters shipped as of 0.4.0. New adapters are welcome: the parity test
+# above already enforces that the registry matches the adapter modules on disk,
+# so adding one does NOT require editing this set. This floor only guards against
+# an accidental registry wipe or a mass removal.
+_CORE_ADAPTERS = {
+    "openai",
+    "openai_agents",
+    "langchain",
+    "langgraph",
+    "crewai",
+    "google_adk",
+    "pydantic_ai",
+    "llamaindex",
+    "semantic_kernel",
+    "haystack",
+    "dify",
+}
+
+
+def test_core_adapters_registered():
+    assert _CORE_ADAPTERS <= set(ADAPTER_MATURITY)
